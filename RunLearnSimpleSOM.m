@@ -1,8 +1,9 @@
-folder = '../../ethz-jpg/';
+folder = '../ethz-jpg/';
 files = dir([folder, '*.jpg']);
 load som.mat;
 k = [-1,-1,-1;-1,8,-1;-1,-1,-1]/8;
 out = ones(79,79);
+for loop=1:10
 for i = 1:length(files)
     fprintf('%d: file %s\n', i, files(i).name);
     img = imread([folder, files(i).name]);
@@ -24,3 +25,5 @@ for i = 1:length(files)
     imwrite(out, 'som.png');
     save('som.mat', 'som', 'neighbor');
 end
+end
+
