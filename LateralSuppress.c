@@ -1,4 +1,5 @@
 #include <mex.h>
+#include <math.h>
 #include "MyMexHelper.h"
 
 Matrix ridge, strength, ori, suppress;
