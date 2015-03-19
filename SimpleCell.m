@@ -1,4 +1,4 @@
-function [out,idx,ridge,sup] = SimpleCell(img, rf)
+function [out,idx,ridge,lmap] = SimpleCell(img, rf)
   if size(img,3) == 3
     img = rgb2gray(img);
   end
@@ -18,4 +18,5 @@ function [out,idx,ridge,sup] = SimpleCell(img, rf)
   mout = mout - sup * 6;
   mout(mout<0) = 0;
   ridge = mout;
+  lmap = FindLine(ridge, double(idx-1)*180/size(rf,3), 1, 10, 10);
 end
