@@ -18,7 +18,8 @@ function [out,idx,ridge,lmap] = SimpleCell(img, rf)
   mout = mout - sup * 6;
   mout(mout<0) = 0;
   ridge = mout;
-  lmap = FindLine(ridge, double(idx-1)*180/size(rf,3), 1, 100, 10);
+  lmap = FindLine(ridge, double(idx-1)*180/size(rf,3), 1, 14, 10);
+  %{
   lmap1 = zeros(size(lmap));
   lmap2 = zeros(size(lmap));
   lmap3 = zeros(size(lmap));
@@ -28,4 +29,5 @@ function [out,idx,ridge,lmap] = SimpleCell(img, rf)
     lmap3(lmap==i) = randi(255);
   end
   lmap = uint8(cat(3,lmap1,lmap2,lmap3));
+  %}
 end
