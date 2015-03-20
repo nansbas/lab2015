@@ -44,9 +44,17 @@ int GetInputValue(int nrhs, const mxArray *prhs[], int idx, double * val)
 
 int GetOutputMatrix(int nlhs, mxArray *plhs[], int idx, Matrix * mat)
 {
+  mwSize dims[3];
   if (idx != 0 && (idx >= nlhs || idx < 0)) {
-    mexErrMsgTxt("Not enough input arguments.");
+    // mexErrMsgTxt("Not enough output arguments.");
     return 0;
+  }
+  if (mat->dims == NULL) {
+    dims[0] = mat->h;
+    dims[1] = mat->w;
+    dims[2] = mat->n;
+    mat->dims = (const mwSize *) dims;
+    mat->nDim = 3;
   }
   if (mat->classID == mxLOGICAL_CLASS) {
     plhs[idx] = mxCreateLogicalArray(mat->nDim, mat->dims);
