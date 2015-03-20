@@ -65,7 +65,7 @@ void traverse(int i, int * m, int depth, int parent)
 
 void findLine(int x, int y)
 {
-  int i, n, m, linestart, linelen, j;
+  int i, n, m, j;
   double lastOri;
   static int dx[] = {-1,0,1,-1,1,-1,0,1};
   static int dy[] = {-1,-1,-1,0,0,1,1,1};
@@ -78,6 +78,7 @@ void findLine(int x, int y)
   tree.nodes[0].firstChild = -1;
   tree.nodes[0].nextSibling = -1;
   tree.nodes[0].depth = 1;
+  tree.nodes[0].visited = 0;
   for (n = i = 0; i < tree.size; i++) {
     for (j = 0; j < 8; j++) {
       int nx = tree.nodes[i].x + dx[j];
@@ -106,34 +107,16 @@ void findLine(int x, int y)
   m = n;
   traverse(n, &m, 1, -1);
   if (tree.nodes[m].depth2 < minLength) return; // keep INTREE to ignore this isolated clique
-  linelen = 0;
+  lines.count++;
   for (i = m; i >= 0 && i < tree.size; i = tree.nodes[i].parent2) {
     int x = tree.nodes[i].x;
     int y = tree.nodes[i].y;
-    double thisOri = ORI(x,y);
-    if (linelen > 0) {
-      double degDiff = lastOri > thisOri ? lastOri - thisOri : thisOri - lastOri;
-      degDiff = degDiff > 90 ? 180 - degDiff : degDiff;
-      if (degDiff > maxOriDiff || i == n) {
-        if (i == n && degDiff <= maxOriDiff) linelen++;
-        if (linelen >= minLength) {
-          for (j = linestart; linelen > 0; linelen--) {
-            MAP(tree.nodes[j].x, tree.nodes[j].y) = lines.count + 1;
-            j = tree.nodes[j].parent2;
-          }
-          lines.count++;
-        }
-        linelen = 0;
-        linestart = i;
-      }
-    } else {
-      linestart = i;
-    }
-    lastOri = thisOri;
-    linelen++;
+    MAP(x,y) = lines.count;
   }
 
   // clear tree
-  for (i = 0; i < tree.size; i++) INTREE(tree.nodes[i].x, tree.nodes[i].y) = 0;
+  for (i = 0; i < tree.size; i++) {
+    INTREE(tree.nodes[i].x, tree.nodes[i].y) = 0;
+  }
   tree.size = 0;
 }
