@@ -8,8 +8,8 @@
 #define MAX_LENG 1000
 #define MAX_LINE 2000
 
-Matrix ridge, ori, map, lout;
-double maxOriDiff, minRidge, minLength;
+Matrix ridge, ori, map, lout, graph;
+double maxOriDiff, minRidge, minLength, maxGap;
 char * inTree;
 
 struct _lines_ {
@@ -25,6 +25,46 @@ struct _lines_ {
 #define MAP(x,y) (((int*)(map.data))[(y)+(x)*ridge.h])
 #define INTREE(x,y) (inTree[(y)+(x)*ridge.h])
 #define LOUT(r,c) (((double*)(lout.data))[(r)+(c)*lout.h])
+#define G(r,c) (((int*)(graph.data))[(r)+(c)*graph.h])
+
+void buildGraph()
+{
+  int i, x, y, dx, dy, iGap, j, dist;
+  double sqrGap = maxGap * maxGap;
+  iGap = (int)(maxGap < 0 ? maxGap - 0.5 : maxGap + 0.5);
+  for (i = 0; i < lines.count; i++) {
+    for (dx = -iGap; dx <= iGap; dx++)
+    for (dy = -iGap; dy <= iGap; dy++) {
+      if (dx == 0 && dy == 0) continue;
+      dist = dx * dx + dy * dy;
+      if (dist > sqrGap) continue;
+      x = dx + lines.l[i].x1;
+      y = dy + lines.l[i].y1;
+      if (x < 0 || y < 0 || x >= ridge.w || y >= ridge.h) continue;
+      j = MAP(x,y);
+      if (j <= 0 || j > lines.count) continue;
+      j = j - 1;
+      if (j == i) continue;
+      G(i,j) = dist;
+      G(j,i) = dist;
+    }
+    for (dx = -iGap; dx <= iGap; dx++)
+    for (dy = -iGap; dy <= iGap; dy++) {
+      if (dx == 0 && dy == 0) continue;
+      dist = dx * dx + dy * dy;
+      if (dist > sqrGap) continue;
+      x = dx + lines.l[i].x2;
+      y = dy + lines.l[i].y2;
+      if (x < 0 || y < 0 || x >= ridge.w || y >= ridge.h) continue;
+      j = MAP(x,y);
+      if (j <= 0 || j > lines.count) continue;
+      j = j - 1;
+      if (j == i) continue;
+      G(i,j) = dist;
+      G(j,i) = dist;
+    }
+  }
+}
 
 void findLine(int x, int y);
 
@@ -36,6 +76,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!GetInputValue(nrhs, prhs, 2, &minRidge)) return;
   if (!GetInputValue(nrhs, prhs, 3, &maxOriDiff)) return;
   if (!GetInputValue(nrhs, prhs, 4, &minLength)) return;
+  if (!GetInputValue(nrhs, prhs, 5, &maxGap)) return;
   maxOriDiff = 
     sin(maxOriDiff / 90 * M_PI) * sin(maxOriDiff / 90 * M_PI) 
     + (1-cos(maxOriDiff / 90 * M_PI)) * (1-cos(maxOriDiff / 90 * M_PI));
@@ -68,6 +109,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       LOUT(i,8) = lines.l[i].sina;
       LOUT(i,9) = lines.l[i].cosa;
     }
+  }
+  graph.h = lines.count;
+  graph.w = lines.count;
+  graph.n = 1;
+  graph.dims = NULL;
+  graph.classID = mxINT32_CLASS;
+  if (GetOutputMatrix(nlhs, plhs, 2, &graph)) {
+    buildGraph();
   }
 }
 
