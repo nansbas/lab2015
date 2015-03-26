@@ -7,8 +7,9 @@
 #define MAX_TREE 30000
 #define MAX_LENG 1000
 #define MAX_LINE 2000
+#define MAX_V4 10000
 
-Matrix ridge, ori, map, lout, graph;
+Matrix ridge, ori, map, lout, graph, v4out;
 double maxOriDiff, minRidge, minLength, maxGap;
 char * inTree;
 
@@ -20,17 +21,84 @@ struct _lines_ {
   int count;
 } lines;
 
+struct _v4_ {
+  struct _v4_feature_ {
+    int l1, l2, scale, cx, cy;
+    double strength, x1, y1, x2, y2, sina1, cosa1, sina2, cosa2;
+  } f[MAX_V4];
+  int count;
+} v4;
+
 #define R(x,y) (((double*)(ridge.data))[(y)+(x)*ridge.h])
 #define ORI(x,y) (((double*)(ori.data))[(y)+(x)*ridge.h])
 #define MAP(x,y) (((int*)(map.data))[(y)+(x)*ridge.h])
 #define INTREE(x,y) (inTree[(y)+(x)*ridge.h])
 #define LOUT(r,c) (((double*)(lout.data))[(r)+(c)*lout.h])
 #define G(r,c) (((int*)(graph.data))[(r)+(c)*graph.h])
+#define V4(r,c) (((double*)(v4out.data))[(r)+(c)*v4out.h])
+
+void recordV4(int i, int j) {
+  int c = v4.count, dist11, dist12, dist21, dist22, cx, cy;
+  if (v4.count >= MAX_V4) return;
+  v4.f[c].l1 = i;
+  v4.f[c].l2 = j;
+  v4.f[c].scale = lines.l[i].length > lines.l[j].length ? lines.l[i].length : lines.l[j].length;
+  v4.f[c].strength = sqrt(lines.l[i].strength * lines.l[j].strength);
+  dist11 = (lines.l[i].x1-lines.l[j].x1)*(lines.l[i].x1-lines.l[j].x1)+(lines.l[i].y1-lines.l[j].y1)*(lines.l[i].y1-lines.l[j].y1);
+  dist12 = (lines.l[i].x1-lines.l[j].x2)*(lines.l[i].x1-lines.l[j].x2)+(lines.l[i].y1-lines.l[j].y2)*(lines.l[i].y1-lines.l[j].y2);
+  dist21 = (lines.l[i].x2-lines.l[j].x1)*(lines.l[i].x2-lines.l[j].x1)+(lines.l[i].y2-lines.l[j].y1)*(lines.l[i].y2-lines.l[j].y1);
+  dist22 = (lines.l[i].x2-lines.l[j].x2)*(lines.l[i].x2-lines.l[j].x2)+(lines.l[i].y2-lines.l[j].y2)*(lines.l[i].y2-lines.l[j].y2);
+  if (dist11 <= dist12 && dist11 <= dist21 && dist11 <= dist22) {
+    cx = (lines.l[i].x1 + lines.l[j].x1) / 2;
+    cy = (lines.l[i].y1 + lines.l[j].y1) / 2;
+  } else if (dist12 <= dist11 && dist12 <= dist21 && dist12 <= dist22) {
+    cx = (lines.l[i].x1 + lines.l[j].x2) / 2;
+    cy = (lines.l[i].y1 + lines.l[j].y2) / 2;
+  } else if (dist21 <= dist11 && dist21 <= dist12 && dist21 <= dist22) {
+    cx = (lines.l[i].x2 + lines.l[j].x1) / 2;
+    cy = (lines.l[i].y2 + lines.l[j].y1) / 2;
+  } else {
+    cx = (lines.l[i].x2 + lines.l[j].x2) / 2;
+    cy = (lines.l[i].y2 + lines.l[j].y2) / 2;
+  }
+  v4.f[c].cx = cx;
+  v4.f[c].cy = cy;
+  v4.f[c].x1 = (lines.l[i].cx - cx) / (double)(v4.f[c].scale);
+  v4.f[c].y1 = (lines.l[i].cy - cy) / (double)(v4.f[c].scale);
+  v4.f[c].x2 = (lines.l[j].cx - cx) / (double)(v4.f[c].scale);
+  v4.f[c].y2 = (lines.l[j].cy - cy) / (double)(v4.f[c].scale);
+  v4.f[c].sina1 = lines.l[i].sina;
+  v4.f[c].cosa1 = lines.l[i].cosa;
+  v4.f[c].sina2 = lines.l[j].sina;
+  v4.f[c].cosa2 = lines.l[j].cosa;
+  v4.count++;
+}
+
+void recordV4fake(int i) {
+  int c = v4.count;
+  if (v4.count >= MAX_V4) return;
+  v4.f[c].l1 = i;
+  v4.f[c].l2 = i;
+  v4.f[c].scale = lines.l[i].length / 2;
+  v4.f[c].strength = lines.l[i].strength;
+  v4.f[c].cx = lines.l[i].cx;
+  v4.f[c].cy = lines.l[i].cy;
+  v4.f[c].x1 = ((double)(lines.l[i].x1 - lines.l[i].cx)) / v4.f[c].scale / 2;
+  v4.f[c].y1 = ((double)(lines.l[i].y1 - lines.l[i].cy)) / v4.f[c].scale / 2;
+  v4.f[c].x2 = ((double)(lines.l[i].x2 - lines.l[i].cx)) / v4.f[c].scale / 2;
+  v4.f[c].y2 = ((double)(lines.l[i].y2 - lines.l[i].cy)) / v4.f[c].scale / 2;
+  v4.f[c].sina1 = lines.l[i].sina;
+  v4.f[c].cosa1 = lines.l[i].cosa;
+  v4.f[c].sina2 = lines.l[i].sina;
+  v4.f[c].cosa2 = lines.l[i].cosa;
+  v4.count++;
+}
 
 void buildGraph()
 {
   int i, x, y, dx, dy, iGap, j, dist;
   double sqrGap = maxGap * maxGap;
+  v4.count = 0;
   iGap = (int)(maxGap < 0 ? maxGap - 0.5 : maxGap + 0.5);
   for (i = 0; i < lines.count; i++) {
     for (dx = -iGap; dx <= iGap; dx++)
@@ -45,6 +113,7 @@ void buildGraph()
       if (j <= 0 || j > lines.count) continue;
       j = j - 1;
       if (j == i) continue;
+      if (G(i,j) <= 0) recordV4(i,j);
       G(i,j) = dist;
       G(j,i) = dist;
     }
@@ -60,6 +129,7 @@ void buildGraph()
       if (j <= 0 || j > lines.count) continue;
       j = j - 1;
       if (j == i) continue;
+      if (G(i,j) <= 0) recordV4(i,j);
       G(i,j) = dist;
       G(j,i) = dist;
     }
@@ -68,6 +138,7 @@ void buildGraph()
     for (j = 0; j < lines.count; j++) if (G(i,j) > 0) break;
     if (j < lines.count) continue;
     if (lines.l[i].length < 2 * minLength) continue;
+    if (G(i,i) <= 0) recordV4fake(i);
     G(i,i) = 1;
   }
 }
@@ -123,6 +194,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   graph.classID = mxINT32_CLASS;
   if (GetOutputMatrix(nlhs, plhs, 2, &graph)) {
     buildGraph();
+  }
+  v4out.h = v4.count;
+  v4out.w = 14;
+  v4out.n = 1;
+  v4out.dims = NULL;
+  v4out.classID = mxDOUBLE_CLASS;
+  if (GetOutputMatrix(nlhs, plhs, 3, &v4out)) {
+    for (i = 0; i < v4.count; i++) {
+      V4(i,0) = v4.f[i].l1;
+      V4(i,1) = v4.f[i].l2;
+      V4(i,2) = v4.f[i].strength;
+      V4(i,3) = v4.f[i].scale;
+      V4(i,4) = v4.f[i].cx;
+      V4(i,5) = v4.f[i].cy;
+      V4(i,6) = v4.f[i].x1;
+      V4(i,7) = v4.f[i].y1;
+      V4(i,8) = v4.f[i].sina1;
+      V4(i,9) = v4.f[i].cosa1;
+      V4(i,10) = v4.f[i].x2;
+      V4(i,11) = v4.f[i].y2;
+      V4(i,12) = v4.f[i].sina2;
+      V4(i,13) = v4.f[i].cosa2;
+    }
   }
 }
 
