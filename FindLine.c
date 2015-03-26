@@ -64,6 +64,12 @@ void buildGraph()
       G(j,i) = dist;
     }
   }
+  for (i = 0; i < lines.count; i++) {
+    for (j = 0; j < lines.count; j++) if (G(i,j) > 0) break;
+    if (j < lines.count) continue;
+    if (lines.l[i].length < 2 * minLength) continue;
+    G(i,i) = 1;
+  }
 }
 
 void findLine(int x, int y);
