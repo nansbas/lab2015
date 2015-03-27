@@ -65,3 +65,34 @@ int GetOutputMatrix(int nlhs, mxArray *plhs[], int idx, Matrix * mat)
   }
   return 1;
 }
+
+int GetInOutMatrix(int nrhs, const mxArray *prhs[], int inIdx, int nlhs, mxArray *plhs[], int outIdx, mxClassID classID, Matrix * mat)
+{
+  const mxArray * arr = NULL;
+  int i = 0;
+  if (inIdx >= nrhs || inIdx < 0) {
+    mexErrMsgTxt("Not enough input arguments.");
+    return 0;
+  }
+  arr = prhs[inIdx];
+  mat->nDim = mxGetNumberOfDimensions(arr);
+  mat->dims = mxGetDimensions(arr);
+  mat->classID = mxGetClassID(arr);
+  if (classID != mat->classID) {
+    mexErrMsgTxt("Not expected type of arguments.");
+    return 0;
+  }
+  if (mat->nDim > 0) mat->h = mat->dims[0];
+  if (mat->nDim > 1) mat->w = mat->dims[1];
+  for (i = 2, mat->n = 1; i < mat->nDim; i++) mat->n *= mat->dims[i];
+  if (outIdx == 0 || (outIdx < nlhs && outIdx >= 0)) {
+    plhs[outIdx] = mxDuplicateArray(prhs[inIdx]);
+    arr = plhs[outIdx];
+  }
+  if (classID == mxLOGICAL_CLASS) {
+    mat->data = (void *) mxGetLogicals(arr);
+  } else {
+    mat->data = mxGetData(arr);
+  }
+  return 1;
+}
