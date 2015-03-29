@@ -1,3 +1,16 @@
+%{
+function model = LearnV4(model, category, learnrate)
+  [rf,out] = MakeSimpleRF(9, 0:5:175, [6,6]);
+  for i = 1:length(category.files)
+    img = imread(['~/Downloads/ETHZShapeClasses-V1.2/',category.category,'/',category.files(i).name,'.jpg']);
+    [out,ori,ridge,lmap,lines,graph,v4] = SimpleCell(img, rf);
+    for j = 1:size(category.files(i).groundtruth,1)
+      [model,in] = LearnV4One(model, v4, category.files(i).groundtruth(j,:), category.ratio, learnrate);
+    end
+  end
+end
+%}
+
 function [model, input] = LearnV4(model, input, rect, ratio, learnrate)
     inrect = (input(:,5)>=rect(1) & input(:,5)<=rect(3) & input(:,6)>=rect(2) & input(:,6)<=rect(4));
     input = input(inrect,:);
@@ -6,6 +19,8 @@ function [model, input] = LearnV4(model, input, rect, ratio, learnrate)
     input(:,4) = input(:,4) / sqrt(rx*ry);
     input(:,5) = (input(:,5)-rect(1)) / rx;
     input(:,6) = (input(:,6)-rect(2)) / ry;
+    DrawV4Model(input(:,[4:14,4:14,3]));
+    %{
     input = [input; input(:,[2,1,3:6,11:14,7:10])];
     mm = repmat(reshape(model(:,1:11),[size(model,1),1,11]),[1,size(input,1),1]);
     ms = repmat(reshape(model(:,12:22),[size(model,1),1,11]),[1,size(input,1),1]);
@@ -21,4 +36,5 @@ function [model, input] = LearnV4(model, input, rect, ratio, learnrate)
     model(:,12:22) = model(:,12:22)*(1-learnrate) + (sim.*diff)*learnrate;
     model(:,9:10) = model(:,9:10) ./ repmat(sqrt(model(:,9).^2+model(:,10).^2),[1,2]);
     model(:,13:14) = model(:,13:14) ./ repmat(sqrt(model(:,13).^2+model(:,14).^2),[1,2]);
+    %}
 end

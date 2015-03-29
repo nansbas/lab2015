@@ -16,7 +16,7 @@ char * inTree;
 struct _lines_ {
   struct _line_record_ {
     int x1, y1, x2, y2, length, cx, cy;
-    double sina, cosa, strength;
+    double alpha, strength;
   } l[MAX_LINE];
   int count;
 } lines;
@@ -24,7 +24,7 @@ struct _lines_ {
 struct _v4_ {
   struct _v4_feature_ {
     int l1, l2, scale, cx, cy;
-    double strength, x1, y1, x2, y2, sina1, cosa1, sina2, cosa2;
+    double strength, x1, y1, x2, y2, alpha1, alpha2;
   } f[MAX_V4];
   int count;
 } v4;
@@ -39,6 +39,7 @@ struct _v4_ {
 
 void recordV4(int i, int j) {
   int c = v4.count, dist11, dist12, dist21, dist22, cx, cy;
+  double diff, diff180;
   if (v4.count >= MAX_V4) return;
   v4.f[c].l1 = i;
   v4.f[c].l2 = j;
@@ -67,15 +68,28 @@ void recordV4(int i, int j) {
   v4.f[c].y1 = (lines.l[i].cy - cy) / (double)(v4.f[c].scale);
   v4.f[c].x2 = (lines.l[j].cx - cx) / (double)(v4.f[c].scale);
   v4.f[c].y2 = (lines.l[j].cy - cy) / (double)(v4.f[c].scale);
-  v4.f[c].sina1 = lines.l[i].sina;
-  v4.f[c].cosa1 = lines.l[i].cosa;
-  v4.f[c].sina2 = lines.l[j].sina;
-  v4.f[c].cosa2 = lines.l[j].cosa;
+  v4.f[c].alpha1 = -lines.l[i].alpha;
+  v4.f[c].alpha2 = -lines.l[j].alpha;
+  diff = atan2(v4.f[c].y1, v4.f[c].x1) - v4.f[c].alpha1;
+  diff180 = diff + M_PI;
+  if (diff < 0) diff = -diff;
+  if (diff > M_PI) diff = 2 * M_PI - diff;
+  if (diff180 < 0) diff180 = -diff180;
+  if (diff180 > M_PI) diff180 = 2 * M_PI - diff180;
+  if (diff180 < diff) v4.f[c].alpha1 -= M_PI;
+  diff = atan2(v4.f[c].y2, v4.f[c].x2) - v4.f[c].alpha2;
+  diff180 = diff + M_PI;
+  if (diff < 0) diff = -diff;
+  if (diff > M_PI) diff = 2 * M_PI - diff;
+  if (diff180 < 0) diff180 = -diff180;
+  if (diff180 > M_PI) diff180 = 2 * M_PI - diff180;
+  if (diff180 < diff) v4.f[c].alpha2 -= M_PI;
   v4.count++;
 }
 
 void recordV4fake(int i) {
   int c = v4.count;
+  double diff, diff180;
   if (v4.count >= MAX_V4) return;
   v4.f[c].l1 = i;
   v4.f[c].l2 = i;
@@ -87,10 +101,22 @@ void recordV4fake(int i) {
   v4.f[c].y1 = ((double)(lines.l[i].y1 - lines.l[i].cy)) / v4.f[c].scale / 2;
   v4.f[c].x2 = ((double)(lines.l[i].x2 - lines.l[i].cx)) / v4.f[c].scale / 2;
   v4.f[c].y2 = ((double)(lines.l[i].y2 - lines.l[i].cy)) / v4.f[c].scale / 2;
-  v4.f[c].sina1 = lines.l[i].sina;
-  v4.f[c].cosa1 = lines.l[i].cosa;
-  v4.f[c].sina2 = lines.l[i].sina;
-  v4.f[c].cosa2 = lines.l[i].cosa;
+  v4.f[c].alpha1 = -lines.l[i].alpha;
+  v4.f[c].alpha2 = -lines.l[i].alpha;
+  diff = atan2(v4.f[c].y1, v4.f[c].x1) - v4.f[c].alpha1;
+  diff180 = diff + M_PI;
+  if (diff < 0) diff = -diff;
+  if (diff > M_PI) diff = 2 * M_PI - diff;
+  if (diff180 < 0) diff180 = -diff180;
+  if (diff180 > M_PI) diff180 = 2 * M_PI - diff180;
+  if (diff180 < diff) v4.f[c].alpha1 += M_PI;
+  diff = atan2(v4.f[c].y2, v4.f[c].x2) - v4.f[c].alpha2;
+  diff180 = diff + M_PI;
+  if (diff < 0) diff = -diff;
+  if (diff > M_PI) diff = 2 * M_PI - diff;
+  if (diff180 < 0) diff180 = -diff180;
+  if (diff180 > M_PI) diff180 = 2 * M_PI - diff180;
+  if (diff180 < diff) v4.f[c].alpha2 += M_PI;
   v4.count++;
 }
 
@@ -135,8 +161,8 @@ void buildGraph()
     }
   }
   for (i = 0; i < lines.count; i++) {
-    for (j = 0; j < lines.count; j++) if (G(i,j) > 0) break;
-    if (j < lines.count) continue;
+    // for (j = 0; j < lines.count; j++) if (G(i,j) > 0) break;
+    // if (j < lines.count) continue;
     if (lines.l[i].length < 2 * minLength) continue;
     if (G(i,i) <= 0) recordV4fake(i);
     G(i,i) = 1;
@@ -169,7 +195,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   free(inTree);
   lout.h = lines.count;
-  lout.w = 10;
+  lout.w = 9;
   lout.n = 1;
   lout.dims = NULL;
   lout.classID = mxDOUBLE_CLASS;
@@ -183,8 +209,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       LOUT(i,5) = lines.l[i].cy;
       LOUT(i,6) = lines.l[i].length;
       LOUT(i,7) = lines.l[i].strength;
-      LOUT(i,8) = lines.l[i].sina;
-      LOUT(i,9) = lines.l[i].cosa;
+      LOUT(i,8) = lines.l[i].alpha;
     }
   }
   graph.h = lines.count;
@@ -196,7 +221,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     buildGraph();
   }
   v4out.h = v4.count;
-  v4out.w = 14;
+  v4out.w = 12;
   v4out.n = 1;
   v4out.dims = NULL;
   v4out.classID = mxDOUBLE_CLASS;
@@ -210,12 +235,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       V4(i,5) = v4.f[i].cy;
       V4(i,6) = v4.f[i].x1;
       V4(i,7) = v4.f[i].y1;
-      V4(i,8) = v4.f[i].sina1;
-      V4(i,9) = v4.f[i].cosa1;
-      V4(i,10) = v4.f[i].x2;
-      V4(i,11) = v4.f[i].y2;
-      V4(i,12) = v4.f[i].sina2;
-      V4(i,13) = v4.f[i].cosa2;
+      V4(i,8) = v4.f[i].alpha1;
+      V4(i,9) = v4.f[i].x2;
+      V4(i,10) = v4.f[i].y2;
+      V4(i,11) = v4.f[i].alpha2;
     }
   }
 }
@@ -239,7 +262,7 @@ struct _line_ {
 void splitLine(int start, int length)
 {
   int i;
-  double avgSin = 0, avgCos = 0, se = 0, norm;
+  double avgSin = 0, avgCos = 0, se = 0, norm, alpha;
   for (i = 0; i < length; i++) {
     avgSin += thisLine.points[start + i].sina;
     avgCos += thisLine.points[start + i].cosa;
@@ -288,8 +311,10 @@ void splitLine(int start, int length)
   lines.l[lines.count].cx = 0;
   lines.l[lines.count].cy = 0;
   lines.l[lines.count].length = length;
-  lines.l[lines.count].sina = avgSin;
-  lines.l[lines.count].cosa = avgCos;
+  alpha = atan2(avgSin, avgCos);
+  if (alpha < 0) alpha = alpha + M_PI * 2;
+  if (alpha >= M_PI * 2) alpha = alpha - M_PI * 2;
+  lines.l[lines.count].alpha = alpha / 2;
   lines.l[lines.count].strength = 0;
   lines.count++;
   for (i = 0; i < length; i++) {
