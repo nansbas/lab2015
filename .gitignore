@@ -2,6 +2,7 @@
 *.mex*
 *.o
 *.out
+*.txt
 *.asv
 *~
 

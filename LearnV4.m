@@ -1,40 +1,27 @@
-%{
-function model = LearnV4(model, category, learnrate)
+function model = LearnV4(category)
   [rf,out] = MakeSimpleRF(9, 0:5:175, [6,6]);
+  model = [];
+  fp = fopen([category.category, '.txt'], 'w');
   for i = 1:length(category.files)
-    img = imread(['~/Downloads/ETHZShapeClasses-V1.2/',category.category,'/',category.files(i).name,'.jpg']);
+    img = imread(['D:\Downloads\ethz_shape_classes_v12\',category.category,'\',category.files(i).name,'.jpg']);
     [out,ori,ridge,lmap,lines,graph,v4] = SimpleCell(img, rf);
     for j = 1:size(category.files(i).groundtruth,1)
-      [model,in] = LearnV4One(model, v4, category.files(i).groundtruth(j,:), category.ratio, learnrate);
+      sample = GetInRect(v4, category.files(i).groundtruth(j,:));
+      model = [model; sample(:,[3,5,6,9,12])];
+      fprintf(fp, '%d\n', size(sample,1));
+      fprintf(fp, '%f \t%f \t%f \t%d \t%d\n', sample(:,[3,5,6,9,12])');
     end
   end
+  fprintf(fp, '0\n');
+  fclose(fp);
 end
-%}
 
-function [model, input] = LearnV4(model, input, rect, ratio, learnrate)
-    inrect = (input(:,5)>=rect(1) & input(:,5)<=rect(3) & input(:,6)>=rect(2) & input(:,6)<=rect(4));
-    input = input(inrect,:);
-    ry = rect(4) - rect(2);
-    rx = (rect(3) - rect(1)) / ratio;
-    input(:,4) = input(:,4) / sqrt(rx*ry);
-    input(:,5) = (input(:,5)-rect(1)) / rx;
-    input(:,6) = (input(:,6)-rect(2)) / ry;
-    DrawV4Model(input(:,[4:14,4:14,3]));
-    %{
-    input = [input; input(:,[2,1,3:6,11:14,7:10])];
-    mm = repmat(reshape(model(:,1:11),[size(model,1),1,11]),[1,size(input,1),1]);
-    ms = repmat(reshape(model(:,12:22),[size(model,1),1,11]),[1,size(input,1),1]);
-    mi = repmat(reshape(input(:,4:14),[1,size(input,1),11]),[size(model,1),1,1]);
-    [sim,idx] = Max2(exp(-sum(((mm - mi).^2)./ms, 3)));
-    input = input(idx, :);
-    sim = sim .* input(:,3) / max(input(:,3));
-    model(:,23) = model(:,23) + sim;
-    sim = repmat(sim,[1,11]);
-    diff = input(:,4:14) - model(:,1:11);
-    model(:,1:11) = model(:,1:11) + (sim.*diff)*learnrate;
-    diff = diff.^2 - model(:,12:22);
-    model(:,12:22) = model(:,12:22)*(1-learnrate) + (sim.*diff)*learnrate;
-    model(:,9:10) = model(:,9:10) ./ repmat(sqrt(model(:,9).^2+model(:,10).^2),[1,2]);
-    model(:,13:14) = model(:,13:14) ./ repmat(sqrt(model(:,13).^2+model(:,14).^2),[1,2]);
-    %}
+function sample = GetInRect(v4, rect)
+  sample = v4(:,5)>=rect(1) & v4(:,5)<= rect(3) & v4(:,6)>= rect(2) & v4(:,6)<=rect(4);
+  sample = v4(sample,:);
+  sample(:,5) = (sample(:,5) - rect(1)) / (rect(3)-rect(1));
+  sample(:,6) = (sample(:,6) - rect(2)) / (rect(4)-rect(2));
+  sample(:,3) = sample(:,3) / max(sample(:,3));
+  sample(:,9) = round(sample(:,9)/pi*180);
+  sample(:,12) = round(sample(:,12)/pi*180);
 end

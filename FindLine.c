@@ -71,19 +71,19 @@ void recordV4(int i, int j) {
   v4.f[c].alpha1 = -lines.l[i].alpha;
   v4.f[c].alpha2 = -lines.l[j].alpha;
   diff = atan2(v4.f[c].y1, v4.f[c].x1) - v4.f[c].alpha1;
-  diff180 = diff + M_PI;
+  diff180 = diff - M_PI;
   if (diff < 0) diff = -diff;
   if (diff > M_PI) diff = 2 * M_PI - diff;
   if (diff180 < 0) diff180 = -diff180;
   if (diff180 > M_PI) diff180 = 2 * M_PI - diff180;
-  if (diff180 < diff) v4.f[c].alpha1 -= M_PI;
+  if (diff180 < diff) v4.f[c].alpha1 += M_PI;
   diff = atan2(v4.f[c].y2, v4.f[c].x2) - v4.f[c].alpha2;
-  diff180 = diff + M_PI;
+  diff180 = diff - M_PI;
   if (diff < 0) diff = -diff;
   if (diff > M_PI) diff = 2 * M_PI - diff;
   if (diff180 < 0) diff180 = -diff180;
   if (diff180 > M_PI) diff180 = 2 * M_PI - diff180;
-  if (diff180 < diff) v4.f[c].alpha2 -= M_PI;
+  if (diff180 < diff) v4.f[c].alpha2 += M_PI;
   v4.count++;
 }
 
@@ -104,14 +104,14 @@ void recordV4fake(int i) {
   v4.f[c].alpha1 = -lines.l[i].alpha;
   v4.f[c].alpha2 = -lines.l[i].alpha;
   diff = atan2(v4.f[c].y1, v4.f[c].x1) - v4.f[c].alpha1;
-  diff180 = diff + M_PI;
+  diff180 = diff - M_PI;
   if (diff < 0) diff = -diff;
   if (diff > M_PI) diff = 2 * M_PI - diff;
   if (diff180 < 0) diff180 = -diff180;
   if (diff180 > M_PI) diff180 = 2 * M_PI - diff180;
   if (diff180 < diff) v4.f[c].alpha1 += M_PI;
   diff = atan2(v4.f[c].y2, v4.f[c].x2) - v4.f[c].alpha2;
-  diff180 = diff + M_PI;
+  diff180 = diff - M_PI;
   if (diff < 0) diff = -diff;
   if (diff > M_PI) diff = 2 * M_PI - diff;
   if (diff180 < 0) diff180 = -diff180;
