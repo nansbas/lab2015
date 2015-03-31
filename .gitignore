@@ -2,7 +2,7 @@
 *.mex*
 *.o
 *.out
-*.txt
 *.asv
 *~
+saved-result/
 

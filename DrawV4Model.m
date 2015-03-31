@@ -3,7 +3,7 @@ function DrawV4Model(model)
   hold on
   if size(model,2) <= 5
     model = model(:,[2,3,1,4,5]);
-    radius = 0.05;
+    radius = 0.06;
     rects = model(:,1:2) - radius;
     line1 = [model(:,1),model(:,1)+cos(model(:,4))*radius,model(:,2),model(:,2)+sin(model(:,4))*radius];
     line2 = [model(:,1),model(:,1)+cos(model(:,5))*radius,model(:,2),model(:,2)+sin(model(:,5))*radius];
@@ -18,13 +18,14 @@ function DrawV4Model(model)
   [~,idx] = sort(model(:,3));
   for i = idx'
     rectangle(...
-      'Position', [rects(i,:), radius*2, radius*2], 'LineWidth', 2, ...
+      'Position', [rects(i,:), radius*2, radius*2], 'LineWidth', 1, ...
       'Curvature', [1,1], 'EdgeColor', -[1,1,1]*model(i,3)/maxColor+1);
     line(line1(i,1:2), line1(i,3:4), 'LineWidth', 2, ...
-      'Color', -[1,0,1]*model(i,3)/maxColor+1);
+      'Color', -[1,1,0]*model(i,3)/maxColor+1);
     line(line2(i,1:2), line2(i,3:4), 'LineWidth', 2, ...
       'Color', -[0,1,1]*model(i,3)/maxColor+1);
   end
-  set(gca, 'YDir', 'reverse');
+  set(gca, 'YDir', 'reverse', 'XLim', [-0.1,1.1], 'YLim', [-0.1,1.1], 'XTick', [], 'YTick', [], 'Position', [0,0,1,1]);
+  set(gcf, 'PaperPositionMode', 'auto', 'Position', [100,100,300,300]);
   hold off
 end
