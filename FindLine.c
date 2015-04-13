@@ -30,7 +30,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!GetInputMatrix(nrhs, prhs, 0, mxDOUBLE_CLASS, &ridge)) return;
   if (!GetInputMatrix(nrhs, prhs, 1, mxDOUBLE_CLASS, &ori)) return;
   if (!GetInputValue(nrhs, prhs, 2, &minRidge)) return;
-  if (!GetInputValue(nrhs, prhs, 4, &minLength)) return;
+  if (!GetInputValue(nrhs, prhs, 3, &minLength)) return;
   map = ori;
   map.classID = mxINT32_CLASS;
   if (!GetOutputMatrix(nlhs, plhs, 0, &map)) return;
