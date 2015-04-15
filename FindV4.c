@@ -161,7 +161,7 @@ void buildGraph()
       py = lines.l[i].y1 + dy;
       if (px >= 0 && py >= 0 && px < iWidth && py < iHeight) {
         j1 = MAP(px, py) - 1;
-        if (j1 >= 0 && !ADJ(i,j1) && !ADJ(j1,i)) {
+        if (j1 != i && j1 >= 0 && !ADJ(i,j1) && !ADJ(j1,i)) {
           recordV4(i, j1);
         }
       }
@@ -169,7 +169,7 @@ void buildGraph()
       py = lines.l[i].y2 + dy;
       if (px >= 0 && py >= 0 && px < iWidth && py < iHeight) {
         j2 = MAP(px, py) - 1;
-        if (j2 >= 0 && !ADJ(i,j2) && !ADJ(j2,i)) {
+        if (j2 != i && j2 >= 0 && !ADJ(i,j2) && !ADJ(j2,i)) {
           recordV4(i, j2);
         }
       }
