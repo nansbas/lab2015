@@ -14,11 +14,19 @@ function [out,idx,ridge,lmap,v4] = SimpleCell(img, rf)
   mout(ridge==0) = 0;
   strength = imfilter(mout, gauss);
   ori = (idx - 1) * pi / size(rf,3);
+  % LateralSuppress(ridge-map, gaussian-smoothed-simple-cell-output, ...
+  %     orientation, lateral-connection-length)
   sup = LateralSuppress(ridge, strength, ori, size(rf,1)/2+1);
   mout = mout - sup * 6;
   mout(mout<0) = 0;
   ridge = mout;
+  % FindLine(ridge-map-with-strength, orientation-in-degree, ...
+  %   strength-threshold, minimum-line-length)
   [lmap,lines] = FindLine(ridge, double(idx-1)*180/size(rf,3), 1, 10);
+  % FindV4(points-of-lines-in-cell-array{[x,y,strength,orientation]}, ...
+  %   image-width, image-height, V4-summation-neighborhood, ...
+  %   minimum-line-length, orientation-difference-threshold, ...
+  %   line-gap-filling-distance)
   [v4out,lmap,v4] = FindV4(lines, size(img,2), size(img,1), 4, 10, 6, 4);
   lmap1 = zeros(size(lmap));
   lmap2 = zeros(size(lmap));
