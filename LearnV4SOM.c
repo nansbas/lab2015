@@ -13,7 +13,7 @@ double oriFactor;
 #define N(r,c) (((double*)(neighbor.data))[(r)+(c)*neighbor.h])
 
 struct _model_ {
-  double x, y, sa1, ca1, sa2, ca2, weight, hit, nx, ny;
+  double x, y, sa1, ca1, sa2, ca2, weight, hit, nx, ny, nweight;
 } newModel[MAX_MODEL];
 
 void learnSOM();
@@ -30,7 +30,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 void learnSOM()
 {
   int i, j, reverse, minj;
-  double ix, iy, io1, io2, istr, mx, my, mo1, mo2, do11, do22, d12, do21, mindiff, diff, temp, w;
+  double ix, iy, io1, io2, istr, mx, my, mo1, mo2, do11, do22, do12, do21, mindiff, diff, temp, w, nw;
   for (i = 0; i < model.h; i++) {
     newModel[i].x = 0;
     newModel[i].y = 0;
@@ -42,6 +42,7 @@ void learnSOM()
     newModel[i].hit = 0;
     newModel[i].nx = 0;
     newModel[i].ny = 0;
+    newModel[i].nweight = 0;
   }
   for (i = 0; i < input.h; i++) {
     ix = IN(i,0);
@@ -90,23 +91,37 @@ void learnSOM()
     }
   }
   for (i = 0; i < model.h; i++) {
-    newModel[i].x /= newModel[i].weight;
-    newModel[i].y /= newModel[i].weight;
-    newModel[i].sa1 /= newModel[i].weight;
-    newModel[i].ca1 /= newModel[i].weight;
-    newModel[i].sa2 /= newModel[i].weight;
-    newModel[i].ca2 /= newModel[i].weight;
+    if (newModel[i].weight <= 0) {
+      newModel[i].x = M(i,0);
+      newModel[i].y = M(i,1);
+      newModel[i].sa1 = sin(M(i,2) / 180 * M_PI) * M(i,4);
+      newModel[i].ca1 = cos(M(i,2) / 180 * M_PI) * M(i,4);
+      newModel[i].sa2 = sin(M(i,3) / 180 * M_PI) * M(i,5);
+      newModel[i].ca2 = cos(M(i,3) / 180 * M_PI) * M(i,5);
+    } else {
+      newModel[i].x /= newModel[i].weight;
+      newModel[i].y /= newModel[i].weight;
+      newModel[i].sa1 /= newModel[i].weight;
+      newModel[i].ca1 /= newModel[i].weight;
+      newModel[i].sa2 /= newModel[i].weight;
+      newModel[i].ca2 /= newModel[i].weight;
+    }
   }
   for (i = 0; i < model.h; i++) {
     for (j = 0; j < model.h; j++) {
       if (i == j) continue;
-      newModel[i].nx += (newModel[j].x - newModel[i].x) * N(i,j);
-      newModel[i].ny += (newModel[j].y - newModel[i].y) * N(i,j);
+      nw = newModel[j].weight * N(i,j);
+      newModel[i].nx += newModel[j].x * nw;
+      newModel[i].ny += newModel[j].y * nw;
+      newModel[i].nweight += nw;
     }
   }
   for (i = 0; i < model.h; i++) {
-    M(i,0) = newModel[i].x + newModel[i].nx;
-    M(i,1) = newModel[i].y + newModel[i].ny;
+    nw = newModel[i].weight + newModel[i].nweight;
+    if (nw > 0) {
+      M(i,0) = (newModel[i].x * newModel[i].weight + newModel[i].nx) / nw;
+      M(i,1) = (newModel[i].y * newModel[i].weight + newModel[i].ny) / nw; 
+    }
     M(i,2) = atan2(newModel[i].sa1, newModel[i].ca1) / M_PI * 180;
     M(i,3) = atan2(newModel[i].sa2, newModel[i].ca2) / M_PI * 180;
     M(i,4) = sqrt(newModel[i].sa1 * newModel[i].sa1 + newModel[i].ca1 * newModel[i].ca1);
