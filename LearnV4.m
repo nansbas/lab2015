@@ -1,25 +1,36 @@
 function category = LearnV4(category)
-  %{
+  category = PrepareSample(category);
+end
+
+function category = PrepareModel(category)
+  r = 10;
+  c = 10;
+  model = zeros(r*c, r*c + 8);
+  for i = 1:c
+    for j = 1:r
+      model(j+(i-1)*r,1) = 1 / c * (i-0.5);
+      model(j+(i-1)*r,2) = 1 / r * (j-0.5);
+    end
+  end
+  model(:,3) = rand(r*c,1) * 360 - 180;
+  model(:,4) = rand(r*c,1) * 360 - 180;
+end
+
+function category = PrepareSample(category)
   [rf,out] = MakeSimpleRF(9, 0:5:175, [6,6]);
   sample = [];
   for i = 1:length(category.files)
-    fprintf('%s: %d: %s\n', category.category, i, category.files(i).name);
-    img = imread(['D:\Downloads\ethz_shape_classes_v12\',category.category,'\',category.files(i).name,'.jpg']);
-    [out,ori,ridge,lmap,lines,graph,v4] = SimpleCell(img, rf);
+    fprintf('file: %s\n', category.files(i).name);
+    img = imread(['/Users/richard/Downloads/ETHZShapeClasses-V1.2/', ...
+      category.category, '/', category.files(i).name, '.jpg']);
+    [out,idx,ridge,lmap,v4] = SimpleCell(img, rf);
     for j = 1:size(category.files(i).groundtruth,1)
-      aSample = GetInRect(v4, category.files(i).groundtruth(j,:));
-      sample = cat(1, sample, aSample(:,[3,5,6,9,12]));
+      rect = category.files(i).groundtruth(j,:);
+      v4(:,3) = (v4(:,3) - rect(1)) / (rect(3) - rect(1));
+      v4(:,4) = (v4(:,4) - rect(2)) / (rect(4) - rect(2));
+      idx = v4(:,3) >= 0 & v4(:,4) >= 0 & v4(:,3) <= 1 & v4(:,4) <= 1;
+      sample = cat(1, sample, v4(idx,3:7));
     end
   end
   category.sample = sample;
-  %}
-  category.model = LearnV4SOM(category.model, category.sample, 0.01, 0.02);
-end
-
-function sample = GetInRect(v4, rect)
-  sample = v4(:,5)>=rect(1) & v4(:,5)<= rect(3) & v4(:,6)>= rect(2) & v4(:,6)<=rect(4);
-  sample = v4(sample,:);
-  sample(:,5) = (sample(:,5) - rect(1)) / (rect(3)-rect(1));
-  sample(:,6) = (sample(:,6) - rect(2)) / (rect(4)-rect(2));
-  sample(:,3) = sample(:,3) / max(sample(:,3));
 end
