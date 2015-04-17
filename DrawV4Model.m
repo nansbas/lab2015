@@ -1,4 +1,36 @@
-function DrawV4Model(pos, ori, strength)
+function DrawV4Model(pos, ori, strength, neighbor)
+  DrawSOM(pos, strength, neighbor);
+  %DrawV4ModelBasic(pos, ori, strength(:,1));
+end
+
+function DrawSOM(pos, strength, neighbor)
+  %figure
+  hold on
+  radius = min([max(pos(:,1))-min(pos(:,1)), max(pos(:,2))-min(pos(:,2))]) / 32;
+  rects = pos - radius;
+  hit = strength(:,2);
+  strength = strength(:,1) - min(strength(:,1));
+  strength = strength / max(strength) * 0.7 + 0.3;
+  [~,idx] = sort(strength);
+  for i = idx'
+    for j = idx'
+      if neighbor(i,j) > 0 && i > j
+        line(pos([i,j],1), pos([i,j],2));
+      end
+    end
+  end
+  for i = idx'
+    rectangle(...
+      'Position', [rects(i,:), radius*2, radius*2], 'LineWidth', 1, ...
+      'Curvature', [1,1], 'EdgeColor', -[1,1,1]*strength(i)+1);
+    text(pos(i,1), pos(i,2), num2str(hit(i)), 'HorizontalAlignment', 'center', ...
+      'Color', -[1,1,1]*strength(i)+1);
+  end
+  set(gca, 'YDir', 'reverse', 'XLim', [-0.1,1.1], 'YLim', [-0.1,1.1], 'XTick', [], 'YTick', [], 'Position', [0,0,1,1]);
+  hold off
+end
+
+function DrawV4ModelBasic(pos, ori, strength)
   %figure
   hold on
   radius = min([max(pos(:,1))-min(pos(:,1)), max(pos(:,2))-min(pos(:,2))]) / 64;

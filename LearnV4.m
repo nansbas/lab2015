@@ -1,11 +1,13 @@
 function category = LearnV4(category)
+  %category = PrepareSample(category);
+  %category = PrepareModel(category);
   category = TrainModel(category);
 end
 
 function category = TrainModel(category)
   model = category.model(:, 1:8);
   neighbor = category.model(:, (1:size(model,1))+8);
-  model = LearnV4SOM(model, category.sample, neighbor * 0.3, 1/16200);
+  model = LearnV4SOM(model, category.sample, neighbor * 0.1, 1/16200);
   category.model = [model, neighbor];
 end
 
