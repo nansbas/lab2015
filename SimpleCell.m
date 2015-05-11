@@ -1,4 +1,4 @@
-function [out,idx,ridge,lmap,v4] = SimpleCell(img, rf)
+function [out,ori,ridge] = SimpleCell(img, rf)
   if size(img,3) == 3
     img = rgb2gray(img);
   end
@@ -9,32 +9,8 @@ function [out,idx,ridge,lmap,v4] = SimpleCell(img, rf)
   end
   out = abs(out);
   [mout,idx] = max(out, [], 3);
-  ridge = FindRidge(mout, 1);
-  gauss = fspecial('gaussian', size(rf,1), size(rf,1));
+  ori = (idx - 1) * 180 / size(rf,3);
+  ridge = FindRidge(mout, ori, 1);
   mout(ridge==0) = 0;
-  strength = imfilter(mout, gauss);
-  ori = (idx - 1) * pi / size(rf,3);
-  % LateralSuppress(ridge-map, gaussian-smoothed-simple-cell-output, ...
-  %     orientation, lateral-connection-length)
-  sup = LateralSuppress(ridge, strength, ori, size(rf,1)/2+1);
-  mout = mout - sup * 6;
-  mout(mout<0) = 0;
   ridge = mout;
-  % FindLine(ridge-map-with-strength, orientation-in-degree, ...
-  %   strength-threshold, minimum-line-length)
-  [lmap,lines] = FindLine(ridge, double(idx-1)*180/size(rf,3), 1, 10);
-  % FindV4(points-of-lines-in-cell-array{[x,y,strength,orientation]}, ...
-  %   image-width, image-height, V4-summation-neighborhood, ...
-  %   minimum-line-length, orientation-difference-threshold, ...
-  %   line-gap-filling-distance)
-  [v4out,lmap,v4] = FindV4(lines, size(img,2), size(img,1), 4, 10, 6, 4);
-  lmap1 = zeros(size(lmap));
-  lmap2 = zeros(size(lmap));
-  lmap3 = zeros(size(lmap));
-  for i = 1:max(lmap(:))
-    lmap1(lmap==i) = randi(255);
-    lmap2(lmap==i) = randi(255);
-    lmap3(lmap==i) = randi(255);
-  end
-  lmap = uint8(cat(3,lmap1,lmap2,lmap3));
 end
