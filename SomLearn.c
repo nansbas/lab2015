@@ -2,12 +2,10 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>
 #include "MyMexHelper.h"
 
 Matrix ridge, ori, cell, v4pos;
 double minRidge, oriFactor, neighbor;
-int * map;
 int adjx[4] = {-1,-1, 0, 1};
 int adjy[4] = { 0,-1,-1,-1};
 
@@ -21,6 +19,12 @@ int adjy[4] = { 0,-1,-1,-1};
 struct _cell_t_ {
   double x, y, sina, cosa, w, out, nx, ny, nw;
 } cells[MAX_CELLS];
+
+typedef struct _map_t_ {
+  int cellIdx;
+  double value;
+} Map;
+Map * map;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -101,7 +105,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for (j = 0; j < cell.h; j++) {
     C(i,j+4) = 0;
   }
-  map = (int *)malloc(sizeof(int) * ridge.h * ridge.w);
+  map = (Map *)malloc(sizeof(Map) * ridge.h * ridge.w);
   for (i = 0; i < ridge.n; i++) {
     for (y = 0; y < ridge.h; y++)
     for (x = 0; x < ridge.w; x++) {
@@ -121,15 +125,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           minD = d;
         }
       }
-      M(x,y) = k;
+      M(x,y).cellIdx = k;
+      M(x,y).value = w * exp(-minD / 80);
       for (j = 0; j < 4; j++) {
         ax = adjx[j] + x;
         ay = adjy[j] + y;
         if (ax < 0 || ay < 0 || ax >= ridge.w || ay >= ridge.h) continue;
         if (R(ax,ay,i) <= minRidge) continue;
-        ak = M(ax,ay);
+        ak = M(ax,ay).cellIdx;
         if (ak == k) continue;
-        w += R(ax,ay,i);
+        w = M(x,y).value + M(ax,ay).value;
         C(k,ak+4) += w;
         C(ak,k+4) += w;
         V4P(k,ak,0) += w * (x + ax) / 2;
