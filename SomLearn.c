@@ -19,7 +19,7 @@ int adjy[4] = { 0,-1,-1,-1};
 #define V4P(i,j,k) (((double*)(v4pos.data))[(i)+(j)*cell.h+(k)*v4pos.h])
 
 struct _cell_t_ {
-  double x, y, sina, cosa, w, out, nw;
+  double x, y, sina, cosa, w, out, nx, ny, nw;
 } cells[MAX_CELLS];
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -39,6 +39,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     cells[i].cosa = 0;
     cells[i].w = 0;
     cells[i].out = 0;
+    cells[i].nx = 0;
+    cells[i].ny = 0;
     cells[i].nw = 0;
   }
   for (i = 0; i < ridge.n; i++)
@@ -73,14 +75,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     w = C(i,j+4);
     if (w == 0) continue;
     if (cells[j].w == 0) continue;
-    cells[i].nw += w * neighbor;
-    cells[i].x += (w * neighbor) * cells[j].x / cells[j].w;
-    cells[i].y += (w * neighbor) * cells[j].y / cells[j].w;
+    cells[i].nw += w * neighbor * cells[j].w;
+    cells[i].nx += w * neighbor * cells[j].x;
+    cells[i].ny += w * neighbor * cells[j].y;
   }
   for (i = 0; i < cell.h; i++) {
-    if (cells[i].w + cells[i].nw == 0 ) continue;
-    cells[i].x /= cells[i].w + cells[i].nw;
-    cells[i].y /= cells[i].w + cells[i].nw;
+    if (cells[i].w + cells[i].nw <= 0) continue;
+    cells[i].x = (cells[i].x + cells[i].nx) / (cells[i].w + cells[i].nw);
+    cells[i].y = (cells[i].y + cells[i].ny) / (cells[i].w + cells[i].nw);
     o = atan2(cells[i].sina, cells[i].cosa) / M_PI * 180;
     if (o < 0) o += 360;
     if (o > 360) o = 360;

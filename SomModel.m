@@ -2,9 +2,15 @@ function [som,v4pos] = SomModel(action, som, arg1, arg2)
   if (strcmp(action,'init')) 
     som = InitModel(8, arg1, arg2);
   elseif (strcmp(action,'learn'))
-    [som,v4pos] = SomLearn(som, arg1, arg2, 0.8, 1, 0.1);
+    ncells = size(som,1);
+    neighbor = som(:,5:ncells+4);
+    [som,v4pos] = SomLearn(som, arg1, arg2, 0.8, 1, 0.05);
+    som = [som(:,1:4),neighbor,som(:,5:ncells+4)];
   elseif (strcmp(action,'draw'))
-    DrawComplexCell(som);
+    subplot(1,2,1);
+    DrawComplexCell(som, arg1, arg2);
+    subplot(1,2,2);
+    DrawSom(som, arg1, arg2);
   end
 end
 
@@ -17,7 +23,25 @@ function som = InitModel(nw, width, height)
   som = [som,d<=2&d>0];
 end
 
-function DrawComplexCell(cells)
+function DrawSom(cells, width, height)
+  r1 = 2;
+  hold on
+  for i = 1:size(cells,1)
+    rectangle('Position', [cells(i,1)-r1,cells(i,2)-r1,2*r1,2*r1], ...
+      'Curvature', [1,1], ...
+      'LineWidth', 1);
+    for j = 1:i-1
+      if cells(i,j+4) > 0 
+        line([cells(i,1),cells(j,1)], [cells(i,2),cells(j,2)]);
+      end
+    end
+  end
+  hold off
+  axis equal
+  set(gca, 'YDir', 'reverse', 'XLim', [0,width], 'YLim', [0,height], 'XTick', [], 'YTick', []);
+end
+
+function DrawComplexCell(cells, width, height)
   r1 = 5;
   r2 = 3;
   cells(:,4) = cells(:,4) / max(cells(:,4));
@@ -26,7 +50,8 @@ function DrawComplexCell(cells)
   y1 = cells(:,2) + r2 * sin(cells(:,3)/180*pi);
   y2 = cells(:,2) - r2 * sin(cells(:,3)/180*pi);
   hold on
-  for i = 1:size(cells,1)
+  [~,idx] = sort(cells(:,4));
+  for i = idx'
     rectangle('Position', [cells(i,1)-r1,cells(i,2)-r1,2*r1,2*r1], ...
       'Curvature', [1,1], ...
       'EdgeColor', 1-[1,1,1]*cells(i,4), ...
@@ -37,5 +62,5 @@ function DrawComplexCell(cells)
   end
   hold off
   axis equal
-  set(gca, 'YDir', 'reverse', 'XLim', [0,178], 'YLim', [0,215]);
+  set(gca, 'YDir', 'reverse', 'XLim', [0,width], 'YLim', [0,height], 'XTick', [], 'YTick', []);
 end
