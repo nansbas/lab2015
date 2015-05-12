@@ -4,7 +4,7 @@ function [som,v4pos] = SomModel(action, som, arg1, arg2)
   elseif (strcmp(action,'learn'))
     ncells = size(som,1);
     neighbor = som(:,5:ncells+4);
-    [som,v4pos] = SomLearn(som, arg1, arg2, 0.8, 1, 0.05);
+    [som,v4pos] = SomLearn(som, arg1, arg2, 0.8, 1, 0.03);
     som = [som(:,1:4),neighbor,som(:,5:ncells+4)];
   elseif (strcmp(action,'draw'))
     subplot(1,2,1);
@@ -24,7 +24,7 @@ function som = InitModel(nw, width, height)
 end
 
 function DrawSom(cells, width, height)
-  r1 = 2;
+  r1 = 4;
   hold on
   for i = 1:size(cells,1)
     rectangle('Position', [cells(i,1)-r1,cells(i,2)-r1,2*r1,2*r1], ...
@@ -37,13 +37,13 @@ function DrawSom(cells, width, height)
     end
   end
   hold off
-  axis equal
-  set(gca, 'YDir', 'reverse', 'XLim', [0,width], 'YLim', [0,height], 'XTick', [], 'YTick', []);
+  %axis equal
+  set(gca, 'YDir', 'reverse', 'XLim', [0,width], 'YLim', [0,height]);
 end
 
 function DrawComplexCell(cells, width, height)
-  r1 = 5;
-  r2 = 3;
+  r1 = 8;
+  r2 = 6;
   cells(:,4) = cells(:,4) / max(cells(:,4));
   x1 = cells(:,1) - r2 * cos(cells(:,3)/180*pi);
   x2 = cells(:,1) + r2 * cos(cells(:,3)/180*pi);
@@ -61,6 +61,6 @@ function DrawComplexCell(cells, width, height)
       'LineWidth', 2);
   end
   hold off
-  axis equal
-  set(gca, 'YDir', 'reverse', 'XLim', [0,width], 'YLim', [0,height], 'XTick', [], 'YTick', []);
+  %axis equal
+  set(gca, 'YDir', 'reverse', 'XLim', [0,width], 'YLim', [0,height]);
 end

@@ -1,3 +1,14 @@
+%% Som Training
+eth = ethz2;
+for i = 1:length(eth)
+  som = eth(i).som;
+  %som = SomModel('init', [], eth(i).sampleSize(1), eth(i).sampleSize(2));
+  [som,v4pos] = SomModel('learn', som, eth(i).sampleRidge, eth(i).sampleOri);
+  eth(i).som = som;
+  eth(i).v4pos = v4pos;
+end
+ethz2 = eth;
+%{
 %% Resize images and samples
 load('ethz2');
 ethz = ethz2;
@@ -40,7 +51,6 @@ for i = 1:length(ethz)
     ethz(i).files(j).imageSize = r;
   end
 end
-%{
 %% Read dataset files to MAT
 %cats = {'apple','bottle','giraffe','hat','mug','starfish','swan'};
 %fdr = '~/Downloads/dataset/extended_ethz_shapes/';
