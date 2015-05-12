@@ -1,16 +1,13 @@
-function [som,v4pos] = SomModel(action, som, arg1, arg2)
+function [som,map] = SomModel(action, som, arg1, arg2)
   if (strcmp(action,'init')) 
     som = InitModel(8, arg1, arg2);
   elseif (strcmp(action,'learn'))
-    ncells = size(som,1);
-    neighbor = som(:,5:ncells+4);
-    [som,v4pos] = SomLearn(som, arg1, arg2, 0.8, 1, 0.03);
-    som = [som(:,1:4),neighbor,som(:,5:ncells+4)];
+    [som,map] = SomLearn(som, arg1, arg2, 0.8, 1, 0.03);
   elseif (strcmp(action,'draw'))
     subplot(1,2,1);
-    DrawComplexCell(som, arg1, arg2);
+    DrawComplexCell(som, arg1(1), arg1(2));
     subplot(1,2,2);
-    DrawSom(som, arg1, arg2);
+    DrawSom(som, arg1(1), arg1(2));
   end
 end
 

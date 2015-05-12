@@ -3,9 +3,9 @@ eth = ethz2;
 for i = 1:length(eth)
   som = eth(i).som;
   %som = SomModel('init', [], eth(i).sampleSize(1), eth(i).sampleSize(2));
-  [som,v4pos] = SomModel('learn', som, eth(i).sampleRidge, eth(i).sampleOri);
+  [som,map] = SomModel('learn', som, eth(i).sampleRidge, eth(i).sampleOri);
   eth(i).som = som;
-  eth(i).v4pos = v4pos;
+  eth(i).sampleMap = map;
 end
 ethz2 = eth;
 %{

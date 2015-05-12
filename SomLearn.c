@@ -4,27 +4,18 @@
 #include <stdlib.h>
 #include "MyMexHelper.h"
 
-Matrix ridge, ori, cell, v4pos;
+Matrix ridge, ori, cell, map;
 double minRidge, oriFactor, neighbor;
-int adjx[4] = {-1,-1, 0, 1};
-int adjy[4] = { 0,-1,-1,-1};
 
 #define MAX_CELLS 1000
 #define C(r,c) (((double*)(cell.data))[(r)+(c)*cell.h])
 #define R(x,y,z) (((double*)(ridge.data))[(y)+(x)*ridge.h+(z)*ridge.h*ridge.w])
 #define ORI(x,y,z) (((double*)(ori.data))[(y)+(x)*ridge.h+(z)*ridge.h*ridge.w])
-#define M(x,y) (map[(y)+(x)*ridge.h])
-#define V4P(i,j,k) (((double*)(v4pos.data))[(i)+(j)*cell.h+(k)*v4pos.h])
+#define M(x,y,z) (((int*)(map.data))[(y)+(x)*ridge.h+(z)*ridge.h*ridge.w])
 
 struct _cell_t_ {
   double x, y, sina, cosa, w, out, nx, ny, nw;
 } cells[MAX_CELLS];
-
-typedef struct _map_t_ {
-  int cellIdx;
-  double value;
-} Map;
-Map * map;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -95,17 +86,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     C(i,2) = o / 2;
     C(i,3) = cells[i].out;
   }
-  v4pos.w = 2;
-  v4pos.h = cell.h * cell.h;
-  v4pos.n = 1;
-  v4pos.classID = mxDOUBLE_CLASS;
-  v4pos.dims = NULL;
-  if (!GetOutputMatrix(nlhs, plhs, 1, &v4pos)) return;
-  for (i = 0; i < cell.h; i++)
-  for (j = 0; j < cell.h; j++) {
-    C(i,j+4) = 0;
-  }
-  map = (Map *)malloc(sizeof(Map) * ridge.h * ridge.w);
+  map = ridge;
+  map.classID = mxINT32_CLASS;
+  if (!GetOutputMatrix(nlhs, plhs, 1, &map)) return;
   for (i = 0; i < ridge.n; i++) {
     for (y = 0; y < ridge.h; y++)
     for (x = 0; x < ridge.w; x++) {
@@ -125,31 +108,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           minD = d;
         }
       }
-      M(x,y).cellIdx = k;
-      M(x,y).value = w * exp(-minD / 80);
-      for (j = 0; j < 4; j++) {
-        ax = adjx[j] + x;
-        ay = adjy[j] + y;
-        if (ax < 0 || ay < 0 || ax >= ridge.w || ay >= ridge.h) continue;
-        if (R(ax,ay,i) <= minRidge) continue;
-        ak = M(ax,ay).cellIdx;
-        if (ak == k) continue;
-        w = M(x,y).value + M(ax,ay).value;
-        C(k,ak+4) += w;
-        C(ak,k+4) += w;
-        V4P(k,ak,0) += w * (x + ax) / 2;
-        V4P(k,ak,1) += w * (y + ay) / 2;
-        V4P(ak,k,0) += w * (x + ax) / 2;
-        V4P(ak,k,1) += w * (y + ay) / 2;
-      }
+      M(x,y,i) = k + 1;
     }
   }
-  for (i = 0; i < cell.h; i++)
-  for (j = 0; j < cell.h; j++) {
-    if (C(i,j+4) <= 0) continue;
-    V4P(i,j,0) /= C(i,j+4);
-    V4P(i,j,1) /= C(i,j+4);
-  }
-  free(map);
 }
 
