@@ -1,17 +1,15 @@
 #include <mex.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <stdlib.h>
 #include "MyMexHelper.h"
 
-Matrix ridge, ori, cell, map;
+Matrix ridge, ori, cell;
 double minRidge, oriFactor, neighbor;
 
 #define MAX_CELLS 1000
 #define C(r,c) (((double*)(cell.data))[(r)+(c)*cell.h])
 #define R(x,y,z) (((double*)(ridge.data))[(y)+(x)*ridge.h+(z)*ridge.h*ridge.w])
 #define ORI(x,y,z) (((double*)(ori.data))[(y)+(x)*ridge.h+(z)*ridge.h*ridge.w])
-#define M(x,y,z) (((int*)(map.data))[(y)+(x)*ridge.h+(z)*ridge.h*ridge.w])
 
 struct _cell_t_ {
   double x, y, sina, cosa, w, out, nx, ny, nw;
@@ -19,7 +17,7 @@ struct _cell_t_ {
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int x, y, i, j, k, ax, ay, ak;
+  int x, y, i, j, k;
   double w, d, minD, o, cx, cy;
   if (!GetInOutMatrix(nrhs, prhs, 0, nlhs, plhs, 0, mxDOUBLE_CLASS, &cell)) return;
   if (!GetInputMatrix(nrhs, prhs, 1, mxDOUBLE_CLASS, &ridge)) return;
@@ -86,30 +84,4 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     C(i,2) = o / 2;
     C(i,3) = cells[i].out;
   }
-  map = ridge;
-  map.classID = mxINT32_CLASS;
-  if (!GetOutputMatrix(nlhs, plhs, 1, &map)) return;
-  for (i = 0; i < ridge.n; i++) {
-    for (y = 0; y < ridge.h; y++)
-    for (x = 0; x < ridge.w; x++) {
-      w = R(x,y,i);
-      o = ORI(x,y,i);
-      if (w <= minRidge) continue;
-      k = -1;
-      for (j = 0; j < cell.h; j++) {
-        d = o - C(j,2);
-        cx = C(j,0);
-        cy = C(j,1);
-        if (d < 0) d = -d;
-        if (d > 90) d = 180 - d;
-        d = oriFactor * d * d + (cx - x) * (cx - x) + (cy - y) * (cy - y);
-        if (k < 0 || d < minD) {
-          k = j;
-          minD = d;
-        }
-      }
-      M(x,y,i) = k + 1;
-    }
-  }
 }
-

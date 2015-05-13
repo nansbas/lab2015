@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include "MyMexHelper.h"
 
-#define MAX_TREE 30000
-#define MAX_LENG 1000
-#define MAX_LINE 2000
-#define MAX_V4 10000
+#define MAX_TREE 50000
+#define MAX_LENG 5000
+#define MAX_LINE 10000
+#define MAX_V4 20000
 
 Matrix ridge, ori, map, lout, graph, v4out;
 double maxOriDiff, minRidge, minLength, maxGap;
@@ -160,13 +160,11 @@ void buildGraph()
       G(j,i) = dist;
     }
   }
-  for (i = 0; i < lines.count; i++) {
-    // for (j = 0; j < lines.count; j++) if (G(i,j) > 0) break;
-    // if (j < lines.count) continue;
+  /*for (i = 0; i < lines.count; i++) {
     if (lines.l[i].length < 2 * minLength) continue;
     if (G(i,i) <= 0) recordV4fake(i);
     G(i,i) = 1;
-  }
+  }*/
 }
 
 void findLine(int x, int y);
@@ -194,7 +192,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     findLine(x, y);
   }
   free(inTree);
-  lout.h = lines.count;
+  /*lout.h = lines.count;
   lout.w = 9;
   lout.n = 1;
   lout.dims = NULL;
@@ -211,34 +209,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       LOUT(i,7) = lines.l[i].strength;
       LOUT(i,8) = lines.l[i].alpha;
     }
-  }
+  }*/
   graph.h = lines.count;
   graph.w = lines.count;
   graph.n = 1;
   graph.dims = NULL;
   graph.classID = mxINT32_CLASS;
-  if (GetOutputMatrix(nlhs, plhs, 2, &graph)) {
+  if (GetOutputMatrix(nlhs, plhs, 1, &graph)) {
     buildGraph();
   }
   v4out.h = v4.count;
-  v4out.w = 12;
+  v4out.w = 7;
   v4out.n = 1;
   v4out.dims = NULL;
   v4out.classID = mxDOUBLE_CLASS;
-  if (GetOutputMatrix(nlhs, plhs, 3, &v4out)) {
+  if (GetOutputMatrix(nlhs, plhs, 2, &v4out)) {
     for (i = 0; i < v4.count; i++) {
       V4(i,0) = v4.f[i].l1;
       V4(i,1) = v4.f[i].l2;
       V4(i,2) = v4.f[i].strength;
-      V4(i,3) = v4.f[i].scale;
-      V4(i,4) = v4.f[i].cx;
-      V4(i,5) = v4.f[i].cy;
-      V4(i,6) = v4.f[i].x1;
-      V4(i,7) = v4.f[i].y1;
-      V4(i,8) = v4.f[i].alpha1;
-      V4(i,9) = v4.f[i].x2;
-      V4(i,10) = v4.f[i].y2;
-      V4(i,11) = v4.f[i].alpha2;
+      V4(i,3) = v4.f[i].cx;
+      V4(i,4) = v4.f[i].cy;
+      V4(i,5) = v4.f[i].alpha1;
+      V4(i,6) = v4.f[i].alpha2;
     }
   }
 }
