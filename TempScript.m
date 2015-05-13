@@ -1,15 +1,8 @@
-%{
-% Som Training
-eth = ethz2;
-for i = 1:length(eth)
-  som = eth(i).som;
-  %som = SomModel('init', [], eth(i).sampleSize(1), eth(i).sampleSize(2));
-  [som,map] = SomModel('learn', som, eth(i).sampleRidge, eth(i).sampleOri);
-  eth(i).som = som;
-  eth(i).sampleMap = map;
+%% Som Training
+for i = 1:length(ethz)
+  %ethz(i).complex = SomModel('init', [], ethz(i).sampleSize(1), ethz(i).sampleSize(2));
+  ethz(i).complex = SomModel('learn', ethz(i).complex, ethz(i).sampleRidge, ethz(i).sampleOri);
 end
-ethz2 = eth;
-%}
 %{
 %% Resize images and samples
 [rf,out]=MakeSimpleRF(9,0:5:175,[6,6]);

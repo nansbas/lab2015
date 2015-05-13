@@ -1,8 +1,8 @@
-function [som,map] = SomModel(action, som, arg1, arg2)
+function som = SomModel(action, som, arg1, arg2)
   if (strcmp(action,'init')) 
     som = InitModel(8, arg1, arg2);
   elseif (strcmp(action,'learn'))
-    [som,map] = SomLearn(som, arg1, arg2, 0.8, 1, 0.03);
+    som = SomLearnComplexCell(som, arg1, arg2, 0.8, 1, 0.03);
   elseif (strcmp(action,'draw'))
     subplot(1,2,1);
     DrawComplexCell(som, arg1(1), arg1(2));
