@@ -1,4 +1,4 @@
-%
+%{
 %% Som Training
 for i = 1:length(ethz)
   %[complex,v4som] = SomModel('init', ethz(i).sampleSize);
@@ -8,7 +8,7 @@ for i = 1:length(ethz)
   ethz(i).v4som = SomModel('learn-v4', ethz(i).v4som, ethz(i).v4sample);
 end
 %}
-%{
+%
 %% Resize images and samples
 [rf,out]=MakeSimpleRF(9,0:5:175,[6,6]);
 for i = 1:length(ethz)
@@ -16,7 +16,7 @@ for i = 1:length(ethz)
   ethz(i).sample = {};
   ethz(i).sampleRidge = [];
   ethz(i).sampleOri = [];
-  ethz(i).v4sample = [];
+  ethz(i).v4sample = {};
   for j = 1:length(ethz(i).files)
     fprintf('%s: %s\n', ethz(i).name, ethz(i).files(j).name);
     img = ethz(i).files(j).image;
@@ -57,7 +57,7 @@ for i = 1:length(ethz)
       ethz(i).sample{n} = padarray(img2(yidx,xidx,:),[pady,padx],0,'post'); 
       ethz(i).sampleRidge = cat(3, ethz(i).sampleRidge, padarray(ridge(yidx,xidx),[pady,padx],0,'post'));
       ethz(i).sampleOri = cat(3, ethz(i).sampleOri, padarray(ori(yidx,xidx),[pady,padx],0,'post'));
-      ethz(i).v4sample = cat(1, ethz(i).v4sample, v4sample);
+      ethz(i).v4sample{n} = v4sample;
     end
     imr = round(mean(imr,1));
     ethz(i).files(j).imageSize = [imr(2),imr(1)];
