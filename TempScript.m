@@ -1,8 +1,13 @@
+%
 %% Som Training
 for i = 1:length(ethz)
-  %ethz(i).complex = SomModel('init', [], ethz(i).sampleSize(1), ethz(i).sampleSize(2));
-  ethz(i).complex = SomModel('learn', ethz(i).complex, ethz(i).sampleRidge, ethz(i).sampleOri);
+  %[complex,v4som] = SomModel('init', ethz(i).sampleSize);
+  %ethz(i).complex = complex;
+  %ethz(i).v4som = v4som;
+  ethz(i).complex = SomModel('learn-complex', ethz(i).complex, ethz(i).sampleRidge, ethz(i).sampleOri);
+  ethz(i).v4som = SomModel('learn-v4', ethz(i).v4som, ethz(i).v4sample);
 end
+%}
 %{
 %% Resize images and samples
 [rf,out]=MakeSimpleRF(9,0:5:175,[6,6]);
@@ -11,8 +16,9 @@ for i = 1:length(ethz)
   ethz(i).sample = {};
   ethz(i).sampleRidge = [];
   ethz(i).sampleOri = [];
+  ethz(i).v4sample = [];
   for j = 1:length(ethz(i).files)
-    %fprintf('%s: %s\n', ethz(i).name, ethz(i).files(j).name);
+    fprintf('%s: %s\n', ethz(i).name, ethz(i).files(j).name);
     img = ethz(i).files(j).image;
     h = size(img,1);
     w = size(img,2);
@@ -37,6 +43,11 @@ for i = 1:length(ethz)
       end
       img2 = imresize(img,imr(k,:));
       [out,ori,ridge]=SimpleCell(img2,rf);
+      [map,graph,v4out]=FindV4(ridge,ori,0.8,14,10,4);
+      v4sample = v4out(v4out(:,4)<=gt(k,3)&v4out(:,4)>=gt(k,1)&v4out(:,5)<=gt(k,4)&v4out(:,5)>=gt(k,2),[4:7,3]);
+      v4sample(:,3:4) = v4sample(:,3:4)/pi*180;
+      v4sample(:,1) = v4sample(:,1) - gt(k,1);
+      v4sample(:,2) = v4sample(:,2) - gt(k,2);
       xidx = gt(k,1):gt(k,3);
       yidx = gt(k,2):gt(k,4);
       n = n + 1;
@@ -46,9 +57,17 @@ for i = 1:length(ethz)
       ethz(i).sample{n} = padarray(img2(yidx,xidx,:),[pady,padx],0,'post'); 
       ethz(i).sampleRidge = cat(3, ethz(i).sampleRidge, padarray(ridge(yidx,xidx),[pady,padx],0,'post'));
       ethz(i).sampleOri = cat(3, ethz(i).sampleOri, padarray(ori(yidx,xidx),[pady,padx],0,'post'));
+      ethz(i).v4sample = cat(1, ethz(i).v4sample, v4sample);
     end
     imr = round(mean(imr,1));
     ethz(i).files(j).imageSize = [imr(2),imr(1)];
+    if size(gt,1) > 1
+      img2 = imresize(img, imr);
+      [out,ori,ridge]=SimpleCell(img2,rf);
+      [map,graph,v4out]=FindV4(ridge,ori,0.8,14,10,4);
+    end
+    ethz(i).files(j).v4data = v4out;
+    ethz(i).files(j).v4linemap = map;
   end
 end
 %}
