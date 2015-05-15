@@ -6,7 +6,7 @@
 Matrix v4, cell, somSize, rects, out, map;
 double oriFactor, neighbor;
 
-#define MAX_CELLS 64
+#define MAX_CELLS 1000
 #define C(r,c) (((double*)(cell.data))[(r)+(c)*cell.h])
 #define V(r,c) (((double*)(v4.data))[(r)+(c)*v4.h])
 #define SR(i) (((double*)(somSize.data))[i])
@@ -78,7 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     for (j = 0; j < cell.h; j++) {
       O(j,i) = 0;
-      if (cells[j].idx >= 0) {
+      if (cells[j].idx >= 0 && cells[j].strength > 1/240) {
         O(j,i) = exp(-cells[j].dist / 240) * log(cells[j].strength * 240) / log(2400);
       }
       M(j,i) = cells[j].idx;

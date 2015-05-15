@@ -45,13 +45,10 @@ int GetInputValue(int nrhs, const mxArray *prhs[], int idx, double * val)
   return 1; 
 }
 
-int GetOutputMatrix(int nlhs, mxArray *plhs[], int idx, Matrix * mat)
+mxArray * CreateMatrix(Matrix * mat)
 {
+  mxArray * arr = NULL;
   mwSize dims[3];
-  if (idx != 0 && (idx >= nlhs || idx < 0)) {
-    // mexErrMsgTxt("Not enough output arguments.");
-    return 0;
-  }
   if (mat->dims == NULL) {
     dims[0] = mat->h;
     dims[1] = mat->w;
@@ -59,13 +56,27 @@ int GetOutputMatrix(int nlhs, mxArray *plhs[], int idx, Matrix * mat)
     mat->dims = (const mwSize *) dims;
     mat->nDim = 3;
   }
-  if (mat->classID == mxLOGICAL_CLASS) {
-    plhs[idx] = mxCreateLogicalArray(mat->nDim, mat->dims);
-    mat->data = (void *) mxGetLogicals(plhs[idx]);
+  if (mat->classID == mxCELL_CLASS) {
+    arr = mxCreateCellArray(mat->nDim, mat->dims);
+    mat->data = (void *) arr;
+  } else if (mat->classID == mxLOGICAL_CLASS) {
+    arr = mxCreateLogicalArray(mat->nDim, mat->dims);
+    mat->data = (void *) mxGetLogicals(arr);
   } else {
-    plhs[idx] = mxCreateNumericArray(mat->nDim, mat->dims, mat->classID, mxREAL);
-    mat->data = mxGetData(plhs[idx]);
+    arr = mxCreateNumericArray(mat->nDim, mat->dims, mat->classID, mxREAL);
+    mat->data = mxGetData(arr);
   }
+  return arr;
+}
+
+int GetOutputMatrix(int nlhs, mxArray *plhs[], int idx, Matrix * mat)
+{
+  mat->data = NULL;
+  if (idx != 0 && (idx >= nlhs || idx < 0)) {
+    // mexErrMsgTxt("Not enough output arguments.");
+    return 0;
+  }
+  plhs[idx] = CreateMatrix(mat);
   return 1;
 }
 
