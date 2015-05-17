@@ -1,12 +1,13 @@
 %
-%% BP training
+%% Test
+load ethz-data;
+load bpnet;
 negCat = {2:5,[1,3:5],[1,2,4,5],[1:3,5],1:4,7:12,[6,8:12],...
   [6,7,9:12],[6:8,10:12],[6:9,11,12],[6:10,12],6:11};
 [rf,out]=MakeSimpleRF(9,0:5:175,[6,6]);
-result = {};
 for i = 1:12
   n = 1;
-  result = {};
+  result(i).list = {};
   for j = 1:length(ethz(i).files)
     out = RunEthzImage(ethz, i, i, j, rf);
     list = MaxRect(out, ethz(i).sampleSize/2);
@@ -21,28 +22,29 @@ for i = 1:12
       list(k,4) = RectOverlap(rect, ethz(i).files(j).groundtruth);
       fprintf('Cat %d, file %d, rect %d, overlap = %f\n', i, j, k, list(k,4));
     end
-    result{n} = list;
+    result(i).list{n} = list;
+    save('-7','result.mat','result');
     n = n + 1;
   end
   for k = negCat{i}
     for j = 1:length(ethz(k).files)
-      out = RunEthzImage(ethz, i, k, j, rf);
+      out = RunEthzImage(ethz, i, k, j, rf, bpnet(i).net);
       list = MaxRect(out, ethz(i).sampleSize);
-      result{n} = list;
+      result(i).list{n} = list;
+      save('-7','result.mat','result');
       n = n + 1;
     end
   end
-  ethz(i).result = result;
 end
 %{
 %% BP training
 negCat = {2:5,[1,3:5],[1,2,4,5],[1:3,5],1:4,7:12,[6,8:12],...
   [6,7,9:12],[6:8,10:12],[6:9,11,12],[6:10,12],6:11};
 [rf,out]=MakeSimpleRF(9,0:5:175,[6,6]);
-pos = 0.9;
-neg = 0.1;
-for i = 2:12
-  net = ethz(i).bpnet;
+pos = 0.99;
+neg = 0.01;
+for i = 1:12
+  net = bpnet(i).net;
   idx = randi(size(ethz(i).posSample,2),1,20);
   in = ethz(i).posSample(:,idx);
   out = ones(1,20) * pos;
@@ -73,8 +75,8 @@ for i = 2:12
     in = cat(2, in, [c;v]);
     out = cat(2, out, neg);
   end
-  [net,out] = BPnetTrain(net, in ,out, 0.0006);
-  ethz(i).bpnet = net;
+  [net,out] = BPnetTrain(net, in ,out, 0.0001);
+  bpnet(i).net = net;
 end
 %}
 %{

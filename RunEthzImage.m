@@ -1,4 +1,4 @@
-function out = RunEthzImage(ethz, trainCat, testCat, idx, rf)
+function out = RunEthzImage(ethz, trainCat, testCat, idx, rf, bpnet)
   fprintf('Run cat %d on cat %d image %d\n', trainCat, testCat, idx);
   t = ethz(trainCat);
   f = ethz(testCat).files(idx);
@@ -21,6 +21,6 @@ function out = RunEthzImage(ethz, trainCat, testCat, idx, rf)
   end
   [c,m] = SomComplexCell(t.complex, ridge, ori, t.sampleSize, rects, 0.8, 2);
   [v,m] = SomV4Cell(t.v4som, f.v4data, t.sampleSize, rects, 1);
-  [net,out] = BPnetTrain(t.bpnet, [c;v]);
+  [net,out] = BPnetTrain(bpnet, [c;v]);
   out = reshape(out, [H,W]);
 end
