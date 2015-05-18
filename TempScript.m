@@ -1,7 +1,5 @@
-%
+%{
 %% Test
-load ethz-data;
-load bpnet;
 negCat = {2:5,[1,3:5],[1,2,4,5],[1:3,5],1:4,7:12,[6,8:12],...
   [6,7,9:12],[6:8,10:12],[6:9,11,12],[6:10,12],6:11};
 [rf,out]=MakeSimpleRF(9,0:5:175,[6,6]);
@@ -9,9 +7,9 @@ for i = 1:12
   n = 1;
   result(i).list = {};
   for j = 1:length(ethz(i).files)
-    out = RunEthzImage(ethz, i, i, j, rf);
-    list = MaxRect(out, ethz(i).sampleSize/2);
-    list(:,1:2) = (list(:,1:2) - 1) * 3 + 1;
+    out = RunEthzImage(ethz, i, i, j, rf, bpnet(i).net);
+    list = MaxRect(out, ethz(i).sampleSize/4);
+    list(:,1:2) = (list(:,1:2) - 1) * 6 + 1;
     oldSize = size(ethz(i).files(j).image);
     newSize = ethz(i).files(j).imageSize;
     for k = 1:size(list,1)
@@ -20,23 +18,26 @@ for i = 1:12
       rect([1,3]) = rect([1,3])/newSize(1)*oldSize(2);
       rect([2,4]) = rect([2,4])/newSize(2)*oldSize(1);
       list(k,4) = RectOverlap(rect, ethz(i).files(j).groundtruth);
-      fprintf('Cat %d, file %d, rect %d, overlap = %f\n', i, j, k, list(k,4));
+      fprintf('Cat %d, file %d, rect %d, value = %f, overlap = %f\n', i, j, k, list(k,3), list(k,4));
     end
     result(i).list{n} = list;
-    save('-7','result.mat','result');
+    save('result','result');
     n = n + 1;
   end
   for k = negCat{i}
     for j = 1:length(ethz(k).files)
       out = RunEthzImage(ethz, i, k, j, rf, bpnet(i).net);
       list = MaxRect(out, ethz(i).sampleSize);
+      for n = 1:size(list,1)
+        fprintf('Cat %d, neg, value = %f\n', i, list(n,3));
+      end
       result(i).list{n} = list;
-      save('-7','result.mat','result');
+      save('result.mat','result');
       n = n + 1;
     end
   end
 end
-%{
+%}
 %% BP training
 negCat = {2:5,[1,3:5],[1,2,4,5],[1:3,5],1:4,7:12,[6,8:12],...
   [6,7,9:12],[6:8,10:12],[6:9,11,12],[6:10,12],6:11};
@@ -44,40 +45,34 @@ negCat = {2:5,[1,3:5],[1,2,4,5],[1:3,5],1:4,7:12,[6,8:12],...
 pos = 0.99;
 neg = 0.01;
 for i = 1:12
+  fprintf('Train cat %d: ', i);
   net = bpnet(i).net;
-  idx = randi(size(ethz(i).posSample,2),1,20);
+  idx = randi(size(ethz(i).posSample,2),1,10);
   in = ethz(i).posSample(:,idx);
-  out = ones(1,20) * pos;
+  out = ones(1,10) * pos;
+  for j = randi(length(ethz(i).files),1,10)
+    f = ethz(i).files(j);
+    img = imresize(f.image, [f.imageSize(2), f.imageSize(1)]);
+    [temp,ori,ridge] = SimpleCell(img, rf);
+    posRect = f.posSampleRect;
+    posRect(:,[1,3]) = posRect(:,[1,3]) + randi(10) - 5;
+    posRect(:,[2,4]) = posRect(:,[2,4]) + randi(10) - 5;
+    c =SomComplexCell(ethz(i).complex, ridge, ori, ethz(i).sampleSize, posRect, 0.8, 2);
+    [v,m] = SomV4Cell(ethz(i).v4som, f.v4data, ethz(i).sampleSize, posRect, 1);
+    in = cat(2, in, [c;v]);
+    out = cat(2, out, pos*ones(1,size(c,2)));
+  end
   for j = negCat{i}
-    k = randi(length(ethz(j).v4sample));
-    [c,m] = SomComplexCell(ethz(i).complex, ethz(j).sampleRidge(:,:,k), ...
-      ethz(j).sampleOri(:,:,k), ethz(i).sampleSize, [0,0,ethz(j).sampleSize], ...
-      0.8, 2);
-    [v,m] = SomV4Cell(ethz(i).v4som, ethz(j).v4sample{k}, ...
-      ethz(i).sampleSize, [0,0,ethz(j).sampleSize], 1);
-    in = cat(2, in, [c;v]);
-    out = cat(2, out, neg);
+    k = randi(length(ethz(j).files));
+    f = ethz(j).files(k);
+    [temp,data] = RunEthzImage(ethz, i, j, k, rf, bpnet(i).net);
+    in = cat(2, in, data);
+    out = cat(2, out, neg*ones(1,size(data,2)));
   end
-  k = randi(length(negCat{i}));
-  k = negCat{i}(k);
-  j = randi(length(ethz(k).files));
-  f = ethz(k).files(j);
-  imr = f.imageSize;
-  img = imresize(f.image, [imr(2),imr(1)]);
-  [temp,ori,ridge] = SimpleCell(img,rf);
-  for j = 1:(20-length(negCat{i}))
-    x = randi(round(imr(1)/2));
-    y = randi(round(imr(2)/2));
-    [c,m] = SomComplexCell(ethz(i).complex, ridge, ori, ethz(i).sampleSize, ...
-      [x,y,x+ethz(i).sampleSize(1),y+ethz(i).sampleSize(2)], 0.8, 2);
-    [v,m] = SomV4Cell(ethz(i).v4som, f.v4data, ethz(i).sampleSize, ...
-      [x,y,x+ethz(i).sampleSize(1),y+ethz(i).sampleSize(2)], 1);
-    in = cat(2, in, [c;v]);
-    out = cat(2, out, neg);
-  end
-  [net,out] = BPnetTrain(net, in ,out, 0.0001);
+  [net,out] = BPnetTrain(net, in ,out, 0.0007);
   bpnet(i).net = net;
 end
+save('bpnet', 'bpnet');
 %}
 %{
 %% BPnet sample
@@ -164,6 +159,7 @@ for i = 1:length(ethz)
     end
     ethz(i).files(j).v4data = v4out;
     ethz(i).files(j).v4linemap = map;
+    ethz(i).files(j).posSampleRect = gt;
   end
 end
 %}
