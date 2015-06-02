@@ -2,7 +2,36 @@ function f = MatchV4Array(arr1, arr2)
   f = DirectMatchV4Array(arr1, arr2);
 end
 
-function f = DirectMatchV4Array(arr1, arr2)
+function arr = JoinV4Array(arr1, arr2, cs)
+  arr = [];
+  for i = 0:size(cs,1)
+    if i == 0
+      l1 = 1;
+      l2 = 1;
+    else
+      l1 = cs(i,1)+1;
+      l2 = cs(i,2)+1;
+    end
+    if i < size(cs,1)
+      r1 = cs(i+1,1)-1;
+      r2 = cs(i+1,2)-1;
+    else
+      r1 = size(arr1,1);
+      r2 = size(arr2,1);
+    end
+    if r1-l1 > r2-l2
+      arr = cat(1, arr, arr1(l1:r1,:));
+    else
+      arr = cat(1, arr, arr2(l2:r2,:));
+    end
+    if i > 0
+      j = (arr1(cs(i,1),:)+arr2(cs(i,2),:))/2;
+      arr = cat(1, arr, NormalizeV4(j));
+    end
+  end
+end
+
+function [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2)
   arr1 = NormalizeV4(arr1);
   arr2 = NormalizeV4(arr2);
   diff = zeros(size(arr1,1),size(arr2,1));
@@ -42,7 +71,22 @@ function f = DirectMatchV4Array(arr1, arr2)
       end
     end
   end
-  
+  cs = [];
+  i = size(arr1,1);
+  j = size(arr2,1);
+  while i > 0 && j > 0
+    if path(i,j) == 1
+      j = j - 1;
+    elseif path(i,j) == 2
+      i = i - 1;
+    elseif path(i,j) == 3
+      cs = cat(1,[i,j],cs);
+      i = i - 1;
+      j = j - 1;
+    end
+  end
+  mcs = mcs(size(arr1,1),size(arr2,1));
+  avgDiff = avgDiff(size(arr1,1),size(arr2,1));
 end
 
 function v = NormalizeV4(v)
