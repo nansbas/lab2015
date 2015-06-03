@@ -67,9 +67,9 @@ function DrawResult(f)
     xy = [x,(mu1*f(i,5)+mu2*f(i,6)),ones(21,1)]*t;
     arg{i*2-1} = xy(:,1);
     arg{i*2} = xy(:,2);
-    text(xy(11,1),xy(11,2),[num2str(f(i,9)),':',num2str(i)],'FontSize',16);
+    text(xy(11,1),xy(11,2),[' ',num2str(i)],'FontSize',20);
   end
-  plot(arg{:}, 'LineWidth', 4);
+  plot(arg{:}, 'LineWidth', 3);
   axis equal
   set(gca, 'YDir', 'reverse');
   hold off
