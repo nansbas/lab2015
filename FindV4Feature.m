@@ -1,6 +1,10 @@
 function f = FindV4Feature(lines, threshold, minLength)
   if strcmp(lines,'draw')
     DrawResult(threshold);
+  elseif strcmp(lines,'drawmodel')
+    f = threshold;
+    f(:,1:4) = f(:,1:4) .* f(:,[12,12,12,12]) + f(:,[10,11,10,11]);
+    DrawResult(f);
   else
     f = [];
     for i = 1:length(lines)
