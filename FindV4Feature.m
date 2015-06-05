@@ -9,8 +9,10 @@ function f = FindV4Feature(lines, threshold, minLength)
     f = [];
     for i = 1:length(lines)
       result = DoLine(lines{i}, threshold, minLength);
-      result(:,9) = i;
-      f = [f; result(:,1:9)];
+      if ~isempty(result)
+        result(:,9) = i;
+        f = [f; result(:,1:9)];
+      end
     end
     DrawResult(f);
   end
