@@ -1,4 +1,68 @@
-function [mcs,avgDiff,cs,joinArr] = MatchV4Array(arr1, arr2)
+function [mcs,avgDiff,cs,out] = MatchV4Array(arr1, arr2, mode)
+  if strcmp(mode,'join')
+    [mcs,avgDiff,cs,out] = MatchV4Array2(arr1, arr2);
+  else
+    if strcmp(mode,'circular')
+      range = 1:size(arr1,1);
+    else
+      range = 1;
+    end
+    j = 1;
+    for i = range
+      idx1 = [i:size(arr1,1),1:i-1];
+      idx2 = 1:size(arr2,1);
+      [m,d,c,t] = MatchV4ArrayTrans(arr1(idx1,:),arr2,idx1,idx2);
+      mcs(j) = m;
+      avgDiff(j) = d;
+      cs{j} = c;
+      out{j} = t;
+      idx2 = size(arr2,1):-1:1;
+      [m,d,c,t] = MatchV4ArrayTrans(arr1(idx1,:),ReverseV4Array(arr2),idx1,idx2);
+      j = j + 1;
+      mcs(j) = m;
+      avgDiff(j) = d;
+      cs{j} = c;
+      out{j} = t;
+    end
+    mmcs = max(mcs);
+    mdiff = min(avgDiff(mcs==mmcs));
+    idx = 1:length(mcs);
+    idx = idx(mcs==mmcs & avgDiff==mdiff);
+    idx = idx(1);
+    mcs = mcs(idx);
+    avgDiff = avgDiff(idx);
+    cs = cs{idx};
+    out = out{idx};
+  end
+end
+
+function [mcs,avgDiff,cs,trans] = MatchV4ArrayTrans(arr1, arr2, idx1, idx2)
+  [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2);
+  pos = arr1(:,[12,12,12,12]) .* arr1(:,1:4) + arr1(:,[10,11,10,11]);
+  A = []; y = [];
+  ratio = 1;
+  for i = 1:size(cs,1)
+    A = [A; 
+      arr1(cs(i,1),10),0,1,0; 
+      0,arr1(cs(i,1),11),0,1; 
+      arr1(cs(i,1),12)*ratio,0,0,0;
+      0,arr1(cs(i,1),12)/ratio,0,0;
+      pos(cs(i,1),1),0,1,0;
+      0,pos(cs(i,1),2),0,1;
+      pos(cs(i,1),3),0,1,0;
+      0,pos(cs(i,1),4),0,1];
+    y = [y; arr2(cs(i,2),[10:12,12,1:4])'];
+  end
+  if size(cs,1) > 0
+    trans = (A'*A).^(-1)*A'*y;
+    cs(:,1) = idx1(cs(:,1));
+    cs(:,2) = idx2(cs(:,2));
+  else
+    trans = [];
+  end
+end
+
+function [mcs,avgDiff,cs,joinArr] = MatchV4Array2(arr1, arr2)
   [m1,d1,s1] = DirectMatchV4Array(arr1, arr2);
   [m2,d2,s2] = DirectMatchV4Array(arr1, ReverseV4Array(arr2));
   if m1 > m2 || (m1 == m2 && d1 < d2)
