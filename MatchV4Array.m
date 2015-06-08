@@ -1,6 +1,9 @@
-function [mcs,avgDiff,cs,out] = MatchV4Array(arr1, arr2, mode)
+function [mcs,avgDiff,cs,out] = MatchV4Array(arr1, arr2, mode, arg)
   if strcmp(mode,'join')
     [mcs,avgDiff,cs,out] = MatchV4Array2(arr1, arr2);
+  elseif strcmp(mode,'position')
+    [mcs,avgDiff,cs] = MatchV4Array2(arr1, arr2);
+    out = PairwisePosition(arr2, cs, arg);
   else
     if strcmp(mode,'circular')
       range = 1:size(arr1,1);
@@ -33,6 +36,29 @@ function [mcs,avgDiff,cs,out] = MatchV4Array(arr1, arr2, mode)
     avgDiff = avgDiff(idx);
     cs = cs{idx};
     out = out{idx};
+  end
+end
+
+function arg = PairwisePosition(arr2, cs, arg)
+  for i = 1:size(cs,1)-1
+    for j = i+1:size(cs,1)
+      v1 = arr2(cs(i,2),:); v2 = arr2(cs(j,2),:);
+      v1 = v1 - v2;
+      v1 = v1(10:11) / sqrt(sum(v1(10:11).^2));
+      i1 = cs(i,1); j1 = cs(j,1);
+      if isnan(arg(i1,j1))
+        arg(i1,j1) = atan2(v1(2),v1(1));
+      else
+        v1 = v1 + [cos(arg(i1,j1)),sin(arg(i1,j1))];
+        arg(i1,j1) = atan2(v1(2),v1(1));
+      end
+      if isnan(arg(j1,i1))
+        arg(j1,i1) = atan2(-v1(2),-v1(1));
+      else
+        v1 = -v1 + [cos(arg(j1,i1)),sin(arg(j1,i1))];
+        arg(j1,i1) = atan2(v1(2),v1(1));
+      end
+    end
   end
 end
 
