@@ -14,13 +14,14 @@ function [mcs,avgDiff,cs,out] = MatchV4Array(arr1, arr2, mode, arg)
     for i = range
       idx1 = [i:size(arr1,1),1:i-1];
       idx2 = 1:size(arr2,1);
-      [m,d,c,t] = MatchV4ArrayTrans(arr1(idx1,:),arr2,idx1,idx2);
+      pos = arg(idx1,idx1);
+      [m,d,c,t] = MatchV4ArrayTrans(arr1(idx1,:),arr2,idx1,idx2,pos);
       mcs(j) = m;
       avgDiff(j) = d;
       cs{j} = c;
       out{j} = t;
       idx2 = size(arr2,1):-1:1;
-      [m,d,c,t] = MatchV4ArrayTrans(arr1(idx1,:),ReverseV4Array(arr2),idx1,idx2);
+      [m,d,c,t] = MatchV4ArrayTrans(arr1(idx1,:),ReverseV4Array(arr2),idx1,idx2,pos);
       j = j + 1;
       mcs(j) = m;
       avgDiff(j) = d;
@@ -62,29 +63,31 @@ function arg = PairwisePosition(arr2, cs, arg)
   end
 end
 
-function [mcs,avgDiff,cs,trans] = MatchV4ArrayTrans(arr1, arr2, idx1, idx2)
-  [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2);
-  pos = arr1(:,[12,12,12,12]) .* arr1(:,1:4) + arr1(:,[10,11,10,11]);
-  A = []; y = [];
-  ratio = 1;
-  for i = 1:size(cs,1)
-    A = [A; 
-      arr1(cs(i,1),10),0,1,0; 
-      0,arr1(cs(i,1),11),0,1; 
-      arr1(cs(i,1),12)*ratio,0,0,0;
-      0,arr1(cs(i,1),12)/ratio,0,0;
-      pos(cs(i,1),1),0,1,0;
-      0,pos(cs(i,1),2),0,1;
-      pos(cs(i,1),3),0,1,0;
-      0,pos(cs(i,1),4),0,1];
-    y = [y; arr2(cs(i,2),[10:12,12,1:4])'];
-  end
-  if size(cs,1) > 0
-    trans = (A'*A).^(-1)*A'*y;
+function [mcs,avgDiff,cs,trans] = MatchV4ArrayTrans(arr1, arr2, idx1, idx2, pos)
+  [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2, pos);
+  trans = [];
+  if ~isempty(cs)
+    p1 = arr1(cs(:,1),10:12);
+    p2 = arr2(cs(:,2),10:12);
+    s1x = sqrt(mean((arr1(:,10)-mean(arr1(:,10))).^2));
+    s1y = sqrt(mean((arr1(:,11)-mean(arr1(:,11))).^2));
+    s2x = sqrt(mean((arr2(:,10)-mean(arr2(:,10))).^2));
+    s2y = sqrt(mean((arr2(:,11)-mean(arr2(:,11))).^2));
+    if s1x == 0 || s2x == 0
+      kx = mean(p2(:,3) ./ p1(:,3));
+    else
+      kx = s2x / s1x;
+    end
+    if s1y == 0 || s2y == 0
+      ky = mean(p2(:,3) ./ p1(:,3));
+    else
+      ky = s2y / s1y;
+    end
+    mx = mean(p2(:,1) - p1(:,1) * kx);
+    my = mean(p2(:,2) - p1(:,2) * ky);
+    trans = [mx,my,kx,ky];
     cs(:,1) = idx1(cs(:,1));
     cs(:,2) = idx2(cs(:,2));
-  else
-    trans = [];
   end
 end
 
@@ -138,13 +141,14 @@ function arr = JoinV4Array(arr1, arr2, cs)
   end
 end
 
-function [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2)
+function [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2, pos)
   arr1 = NormalizeV4(arr1);
   arr2 = NormalizeV4(arr2);
   diff = zeros(size(arr1,1),size(arr2,1));
   avgDiff = zeros(size(arr1,1),size(arr2,1));
   mcs = zeros(size(arr1,1),size(arr2,1));
   path = zeros(size(arr1,1),size(arr2,1));
+  lastpair = zeros(size(arr1,1),size(arr2,1),2);
   for i = 1:size(arr1,1)
     for j = 1:size(arr2,1)
       diff(i,j) = DiffV4(arr1(i,:),arr2(j,:));
@@ -156,11 +160,13 @@ function [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2)
         path(i,j) = 1; % from left
         mcs(i,j) = mcs(i,j-1);
         avgDiff(i,j) = avgDiff(i,j-1);
+        lastpair(i,j,:) = lastpair(i,j-1,:);
       end
       if i > 1 && (mcs(i-1,j)>mcs(i,j) || (mcs(i-1,j)==mcs(i,j) && avgDiff(i-1,j)<avgDiff(i,j)))
         path(i,j) = 2; % from top
         mcs(i,j) = mcs(i-1,j);
         avgDiff(i,j) = avgDiff(i-1,j);
+        lastpair(i,j,:) = lastpair(i-1,j,:);
       end
       if diff(i,j)<0.2
         if i > 1 && j > 1
@@ -171,9 +177,12 @@ function [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2)
           newAvgDiff = diff(i,j);
         end
         if newMcs > mcs(i,j) || (newMcs == mcs(i,j) && newAvgDiff < avgDiff(i,j))
-          mcs(i,j) = newMcs;
-          avgDiff(i,j) = newAvgDiff;
-          path(i,j) = 3; % through this
+          if ~exist('pos','var') || PositionError(pos,arr2,lastpair,i,j) < 1.6
+            mcs(i,j) = newMcs;
+            avgDiff(i,j) = newAvgDiff;
+            path(i,j) = 3; % through this
+            lastpair(i,j,:) = [i,j];
+          end
         end
       end
     end
@@ -182,20 +191,41 @@ function [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2)
   i = size(arr1,1);
   j = size(arr2,1);
   while i > 0 && j > 0
-    if path(i,j) == 1
-      j = j - 1;
-    elseif path(i,j) == 2
-      i = i - 1;
-    elseif path(i,j) == 3
+    if i == lastpair(i,j,1) && j == lastpair(i,j,2)
       cs = cat(1,[i,j],cs);
       i = i - 1;
       j = j - 1;
     else
-      break
+      i = lastpair(i,j,:);
+      j = i(2);
+      i = i(1);
     end
   end
   mcs = mcs(size(arr1,1),size(arr2,1));
   avgDiff = avgDiff(size(arr1,1),size(arr2,1));
+end
+
+function d = PositionError(pos, arr2, lastpair, i0, j0)
+  d = [];
+  i = i0 - 1;
+  j = j0 - 1;
+  pxy = arr2(j0,10:11);
+  while i > 0 && j > 0
+    if i == lastpair(i,j,1) && j == lastpair(i,j,2)
+      xy = pxy - arr2(j,10:11);
+      a = abs(atan2(xy(2),xy(1)) - pos(i0,i));
+      if (a > pi), a = 2 * pi - a; end
+      d = [d, a];
+      i = i - 1;
+      j = j - 1;
+    else
+      i = lastpair(i,j,:);
+      j = i(2);
+      i = i(1);
+    end
+  end
+  if isempty(d), d = 0; end
+  d = max(d);
 end
 
 function v = NormalizeV4(v)
