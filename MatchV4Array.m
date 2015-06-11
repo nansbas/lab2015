@@ -177,12 +177,16 @@ function [mcs,avgDiff,cs] = DirectMatchV4Array(arr1, arr2, pos)
           newAvgDiff = diff(i,j);
         end
         if newMcs > mcs(i,j) || (newMcs == mcs(i,j) && newAvgDiff < avgDiff(i,j))
-          if ~exist('pos','var') || PositionError(pos,arr2,lastpair,i,j) < 1.6
-            mcs(i,j) = newMcs;
-            avgDiff(i,j) = newAvgDiff;
-            path(i,j) = 3; % through this
-            lastpair(i,j,:) = [i,j];
+          if exist('pos','var')
+            d = PositionError(pos,arr2,lastpair,i,j);
+            if ~isempty(d) && max(d) > 1.6
+              continue;
+            end
           end
+          mcs(i,j) = newMcs;
+          avgDiff(i,j) = newAvgDiff;
+          path(i,j) = 3; % through this
+          lastpair(i,j,:) = [i,j];
         end
       end
     end
@@ -224,8 +228,6 @@ function d = PositionError(pos, arr2, lastpair, i0, j0)
       i = i(1);
     end
   end
-  if isempty(d), d = 0; end
-  d = max(d);
 end
 
 function v = NormalizeV4(v)

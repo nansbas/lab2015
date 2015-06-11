@@ -1,4 +1,6 @@
-function f = MatchV4inImage(model, lines, v4set)
+function f = MatchV4inImage(model, image)
+  lines = image.lines;
+  v4set = image.v4;
   for i = 1:length(lines)
     r = rand();
     g = rand();
