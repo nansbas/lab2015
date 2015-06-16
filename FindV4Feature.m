@@ -1,3 +1,17 @@
+% Find and draw V4 features or V4 model.
+%   FindV4Feature('draw',f): Draw features in matrix f.
+%   f = FindV4Feature('drawmodel',f): Draw model f.
+%     A model is a set of normalized V4 features with position ans scale.
+%     The return value is de-normalized features.
+%   f = FindV4Feature(lines, threshold, minLength): Find and draw V4 features.
+%     lines is a cell array of matrix {[x1,y1;x2,y2;...],...}.
+%     threshold is the maximal summed error in least squares fitting.
+%     minLength is the minimal feature length.
+%     We usually use FindV4Feature(lines, 0.05, 20) for ETHZ-shape images.
+%     Returned features f is row matrix,
+%     [x1,y1,x2,y2,a,b,startPointIndex,endPointIndex,lineIndex;...].
+%     Normalized model f is row matrix,
+%     [x1,y1,x2,y2,a,b,startPointIndex,endPointIndex,N/A,midX,midY,scale;...].
 function f = FindV4Feature(lines, threshold, minLength)
   if strcmp(lines,'draw')
     DrawResult(threshold);
