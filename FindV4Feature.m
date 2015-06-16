@@ -32,6 +32,7 @@ function f = FindV4Feature(lines, threshold, minLength)
   end
 end
 
+% Find V4 features on a single line.
 function result = DoLine(line, threshold, minLength)
   result = [];
   for i = 1:5:size(line,1)
@@ -74,6 +75,7 @@ function result = DoLine(line, threshold, minLength)
   end
 end
 
+% Draw V4 features.
 function DrawResult(f)
   arg = {};
   x = (-1:0.1:1)';
