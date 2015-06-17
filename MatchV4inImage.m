@@ -17,10 +17,11 @@ function f = MatchV4inImage(model, image)
   for i = 1:length(lines)
     v4 = v4set(v4set(:,9)==i,:);
     if isempty(v4), continue; end
-    [m,d,c,t] = MatchV4Array(model.v4, v4, 'circular', model.position);
+    [m,d,c,t] = MatchV4Array(model.v4, model.line, v4, lines{i});
     if m < 3, continue; end
+    if t(1) < 0 || t(2) < 0, continue; end
     text(lines{i}(1,1),lines{i}(1,2),[num2str(i),':',num2str(m),':',num2str(d)],'FontSize',14);
-    rectangle('Position', t, 'LineWidth', 2);
+    rectangle('Position', [t(3),t(4),model.bound(3:4).*t(1:2)], 'LineWidth', 2);
   end
   hold off
 end
