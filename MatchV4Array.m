@@ -58,81 +58,78 @@ function [m,d,c,t] = DirectMatch(arr1, l1, arr2, l2)
   a2 = NormalizeV4(arr2);
   m = zeros(size(a1,1),size(a2,1));
   d = zeros(size(a1,1),size(a2,1));
-  lastPair = zeros(size(a1,1),size(a2,1),2);
-  startPoint = zeros(size(a1,1),size(a2,1),5);
+  c = cell(size(a1,1),size(a2,1));
+  t = cell(size(a1,1),size(a2,1));
   for i = 1:size(a1,1)
     for j = 1:size(a2,1)
       if j > 1 && (m(i,j-1)>m(i,j) || (m(i,j-1)==m(i,j) && d(i,j-1)<d(i,j)))
         m(i,j) = m(i,j-1);
         d(i,j) = d(i,j-1);
-        lastPair(i,j,:) = lastPair(i,j-1,:);
-        startPoint(i,j,:) = startPoint(i,j-1,:);
+        c{i,j} = c{i,j-1};
+        t{i,j} = t{i,j-1};
       end
       if i > 1 && (m(i-1,j)>m(i,j) || (m(i-1,j)==m(i,j) && d(i-1,j)<d(i,j)))
         m(i,j) = m(i-1,j);
         d(i,j) = d(i-1,j);
-        lastPair(i,j,:) = lastPair(i-1,j,:);
-        startPoint(i,j,:) = startPoint(i-1,j,:);
+        c{i,j} = c{i-1,j};
+        t{i,j} = t{i-1,j};
       end
       v4diff = DiffV4(a1(i,:),a2(j,:));
       if v4diff < 0.2
         if i > 1 && j > 1
           m1 = m(i-1,j-1) + 1;
-          s1 = startPoint(i-1,j-1,:);
-          if (s1(1)==0 && s1(2)==0), s1(1:2) = [a1(i,7),a2(j,7)]; end
-          if (a1(i,8) < s1(3)), s1(5) = 1; end
-          s1(3:4) = [a1(i,8),a2(j,8)];
+          s1 = [c{i-1,j-1};i,j];
         else
           m1 = 1;
-          s1 = [a1(i,7),a2(j,7),a1(i,8),a2(j,8),0];
+          s1 = [i,j];
         end
-        [ldiff,temp] = DiffLine(l1,[s1(1),s1(3),s1(5)],l2,[s1(2),s1(4)]);
-        if ldiff < 200 && (m1>m(i,j) || (m1==m(i,j) && ldiff<d(i,j)))
+        [ldiff,tran] = DiffLine(l1,a1(s1(:,1),7:8),l2,a2(s1(:,2),7:8));
+        if ldiff < 160 && (m1>m(i,j) || (m1==m(i,j) && ldiff<d(i,j)))
           m(i,j) = m1;
           d(i,j) = ldiff;
-          lastPair(i,j,:) = [i,j];
-          startPoint(i,j,:) = s1;
+          c{i,j} = s1;
+          t{i,j} = tran;
         end
       end
     end
   end
-  c = [];
-  i = size(arr1,1);
-  j = size(arr2,1);
-  while i > 0 && j > 0
-    if i == lastPair(i,j,1) && j == lastPair(i,j,2)
-      c = cat(1,[i,j],c);
-      i = i - 1;
-      j = j - 1;
-    else
-      i = lastPair(i,j,:);
-      j = i(2);
-      i = i(1);
-    end
-  end
   m = m(size(arr1,1),size(arr2,1));
-  s1 = startPoint(size(arr1,1),size(arr2,1),:);
-  if m > 0
-    [d,t] = DiffLine(l1,[s1(1),s1(3),s1(5)],l2,[s1(2),s1(4)]);
-  else
-    d = Inf;
-    t = [];
-  end
+  d = d(size(arr1,1),size(arr2,1));
+  c = c{size(arr1,1),size(arr2,1)};
+  t = t{size(arr1,1),size(arr2,1)};
 end
 
 % Calculate difference between lines.
 % l is line and r is range. l1 can be cyclic.
 function [d,t] = DiffLine(l1, r1, l2, r2)
-  if r1(3) > 0
-    l1 = l1([r1(1):size(l1,1),1:r1(2)],1:2);
-  else
-    l1 = l1(r1(1):r1(2),1:2);
+  nl1 = [];
+  nl2 = [];
+  for i = 0:size(r1,1)
+    step = 5;
+    if i == 0
+      u1 = [r1(1,1),(r1(1,1)+r1(1,2))/2];
+      u2 = [r2(1,1),(r2(1,1)+r2(1,2))/2];
+    elseif i == size(r1,1)
+      u1 = [(r1(i,1)+r1(i,2))/2,r1(i,2)];
+      u2 = [(r2(i,1)+r2(i,2))/2,r2(i,2)];
+    else
+      u1 = [(r1(i,1)+r1(i,2))/2,(r1(i+1,1)+r1(i+1,2))/2];
+      u2 = [(r2(i,1)+r2(i,2))/2,(r2(i+1,1)+r2(i+1,2))/2];
+      step = 10;
+    end
+    u1 = round(u1);
+    u2 = round(u2);
+    u2 = u2(1):((u2(2)-u2(1))/step):u2(2);
+    u2 = round(u2(1:step));
+    if u1(2) < u1(1), u1(2) = u1(2) + size(l1,1); end
+    u1 = u1(1):((u1(2)-u1(1))/step):u1(2);
+    u1 = round(u1(1:step));
+    u1(u1>size(l1,1)) = u1(u1>size(l1,1)) - size(l1,1);
+    nl1 = cat(1, nl1, l1(u1,:));
+    nl2 = cat(1, nl2, l2(u2,:));
   end
-  l2 = l2(r2(1):r2(2),1:2);
-  q1 = 1:((size(l1,1)-1)/100):size(l1,1);
-  q2 = 1:((size(l2,1)-1)/100):size(l2,1);
-  l1 = interp1(l1, q1(1:100));
-  l2 = interp1(l2, q2(1:100));
+  l1 = nl1(:,1:2);
+  l2 = nl2(:,1:2);
   %plot(l1(:,1),l1(:,2),l2(:,1),l2(:,2));
   Ax = l1;
   Ax(:,2) = 1;
