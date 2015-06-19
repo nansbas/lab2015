@@ -19,7 +19,9 @@ function f = MatchV4inImage(model, image)
     if isempty(v4), continue; end
     [m,d,c,t] = MatchV4Array(model.v4, model.line, v4, lines{i});
     if m < 3, continue; end
-    if t(1) < 0 || t(2) < 0, continue; end
+    if t(1) <= 0 || t(2) <= 0, continue; end
+    if t(1)/t(2)>2 || t(1)/t(2)<0.4, continue; end
+    if d/m/m > 6, continue; end
     text(lines{i}(1,1),lines{i}(1,2),[num2str(i),':',num2str(m),':',num2str(d)],'FontSize',14);
     rectangle('Position', [t(3),t(4),model.bound(3:4).*t(1:2)], 'LineWidth', 2);
   end

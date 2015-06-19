@@ -1,3 +1,13 @@
+% Match two V4 feature arrays.
+%   arr1 and arr2 is two V4 feature arrays, each feature in a row. arr1 is
+%   treated as a model/template, which is circulated and reversed to find
+%   the best match to arr2.
+%   line1 and line2 is the corresponding lines, each point in a row.
+%   The return values mcs is the maximal common sub-array of features.
+%   avgDiff is the average difference between the line points of matched
+%   features. cs is the index of matched features. tran is the transform to
+%   map line1 to line2. It is assumed that the transform involves only
+%   transition and scaling.
 function [mcs,avgDiff,cs,tran] = MatchV4Array(arr1, line1, arr2, line2)
   mcs = [];
   avgDiff = [];
@@ -53,6 +63,8 @@ function arr = ReverseV4Array(arr, len)
   arr(:,7:8) = len - arr(:,[8,7]) + 1;
 end
 
+% Direct match two arrays of V4 features using a dynamic programming
+% approach, similar to free-space-diagram.
 function [m,d,c,t] = DirectMatch(arr1, l1, arr2, l2)
   a1 = NormalizeV4(arr1);
   a2 = NormalizeV4(arr2);
@@ -101,6 +113,7 @@ end
 
 % Calculate difference between lines.
 % l is line and r is range. l1 can be cyclic.
+% The mapping of line points is aligned with the mid-point of each feature.
 function [d,t] = DiffLine(l1, r1, l2, r2)
   nl1 = [];
   nl2 = [];

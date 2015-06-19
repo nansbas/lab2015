@@ -82,17 +82,37 @@ function DrawResult(f)
   mu1 = x.^2-abs(x)*2+1;
   mu2 = 1-x.^2;
   hold on
-  set(gca, 'ColorOrder', rand(32,3));
+  colororder = [0.8    0.1    0.3
+    0.3    0.8    0.1
+    0.1    0.3    0.8
+    0.8    0.3    0.1
+    0.1    0.8    0.3
+    0.3    0.1    0.8
+    0.8    0.1    0.7
+    0.7    0.8    0.1
+    0.1    0.7    0.8
+    0.8    0.7    0.1
+    0.1    0.8    0.7
+    0.7    0.1    0.8
+    0.8    0.1    0.5
+    0.5    0.8    0.1
+    0.1    0.5    0.8
+    0.8    0.5    0.1];
+  set(gca, 'ColorOrder', colororder);
+  range = [inf,inf,-inf,-inf];
   for i = 1:size(f,1)
     t = [-1,0,1,0;0,1,0,1;1,0,1,0;0,-1,0,1]^(-1)*f(i,1:4)';
     t = [t(1),-t(2);t(2),t(1);t(3),t(4)];
     xy = [x,(mu1*f(i,5)+mu2*f(i,6)),ones(21,1)]*t;
     arg{i*2-1} = xy(:,1);
     arg{i*2} = xy(:,2);
-    text(xy(11,1),xy(11,2),[' ',num2str(i)],'FontSize',20);
+    text(xy(11,1),xy(11,2),[' ',num2str(i)],'FontSize',10);
+    range(1:2) = min([range(1:2);xy]);
+    range(3:4) = max([range(3:4);xy]);
   end
-  plot(arg{:}, 'LineWidth', 3);
+  range = [range([1,3]); range([2,4])] * [1.1,-0.1;-0.1,1.1];
+  plot(arg{:}, 'LineWidth', 2);
   axis equal
-  set(gca, 'YDir', 'reverse');
+  set(gca, 'YDir', 'reverse', 'XTick', [], 'YTick', [], 'XLim', range(1,:), 'YLim', range(2,:));
   hold off
 end
