@@ -8,6 +8,7 @@
 %   features. cs is the index of matched features. tran is the transform to
 %   map line1 to line2. It is assumed that the transform involves only
 %   transition and scaling.
+%   This function uses only feature column 1~8:[x1,y1,x2,y2,a,b,startPoint,endPoint].
 function [mcs,avgDiff,cs,tran] = MatchV4Array(arr1, line1, arr2, line2)
   mcs = [];
   avgDiff = [];
