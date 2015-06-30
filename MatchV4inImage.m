@@ -1,4 +1,5 @@
-function f = MatchV4inImage(model, image)
+function f = MatchV4inImage(model, image, noCycleMode)
+  if ~exist('noCycleMode','var'), noCycleMode = 'cycle'; end
   lines = image.lines;
   v4set = image.v4;
   v4set(:,10:11) = ComputeV4MidPoint(v4set);
@@ -20,19 +21,20 @@ function f = MatchV4inImage(model, image)
     v4 = v4set(v4set(:,9)==i,:);
     v4idx = v4setidx(v4set(:,9)==i);
     if isempty(v4), continue; end
-    [m,d,c,t] = MatchV4Array(model.v4, model.line, v4, lines{i});
+    [m,d,c,t] = MatchV4Array(model.v4, model.line, v4, lines{i}, noCycleMode);
     if m < 1, continue; end
     if t(1) <= 0 || t(2) <= 0, continue; end
     if t(1)/t(2)>2.5 || t(1)/t(2)<0.4, continue; end
     if d/m/m > 6, continue; end
     %FindV4Feature('drawcolor', v4set(v4idx(c(:,2)),:), [1,0,0]);
-    [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2))', t);
+    [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t);
     %FindV4Feature('drawcolor', v4set(fidx,:), [repmat([1,0,0],size(c,1),1);repmat([0,0,1],length(fidx)-size(c,1),1)]);
     %fidx0 = fidx;
-    %[fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2))', t);
+    %[fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t);
+    if mean(cover) < 0.8 || d > 20, continue; end
     FindV4Feature('drawcolor', v4set(fidx,:), [repmat([1,0,0],size(c,1),1);repmat([0,0,1],length(fidx)-size(c,1),1)]);
-    %if mean(cover) < 0.8 || d > 30, continue; end
-    %text(lines{i}(1,1),lines{i}(1,2),[num2str(i),':',num2str(mean(cover)),':',num2str(d)],'FontSize',18);
+    text(lines{i}(1,1),lines{i}(1,2),[num2str(i),':',num2str(mean(cover)),':',num2str(d)],'FontSize',18);
+    if t(1)/t(2)>2.5 || t(1)/t(2)<0.4, continue; end
     rectangle('Position', [t(3),t(4),model.bound(3:4).*t(1:2)], 'LineWidth', 2);
   end
   hold off
@@ -47,62 +49,63 @@ function f = ComputeV4MidPoint(v4)
 end
 
 % Extend seed features.
-% seed is index in a column vector.
-function [fidx,t,mlineCovered,d] = ExtendMatch(model, image, seed, tran) 
+function [fidx,t,mlineCovered,d] = ExtendMatch(model, image, seed, tran, noCycleMode) 
+  if ~exist('noCycleMode','var'), noCycleMode = 'cycle'; end
   v4 = image.v4;
   v4(:,[1,3,10]) = (v4(:,[1,3,10])-tran(3))/tran(1);
   v4(:,[2,4,11]) = (v4(:,[2,4,11])-tran(4))/tran(2);
   d(:,:,1) = DiffMatrix(v4(:,1:2),model.line,2);
   d(:,:,2) = DiffMatrix(v4(:,3:4),model.line,2);
   d(:,:,3) = DiffMatrix(v4(:,10:11),model.line,2);
-  [d,pidx] = min(d,[],2);
-  v4dist = max(d,[],3);
-  [temp,order] = sort(v4dist);
-  order = [seed;order(~ismember(order,seed))]';
+  v4dist = max(min(d,[],2),[],3);
+  [~,order] = sort(v4dist);
+  order = order(~ismember(order,seed));
   mlength = size(model.line,1);
   mlineCovered = zeros(1,mlength);
   covered = 0;
-  pidx = reshape(pidx, size(pidx,1), 3);
-  modelPoint = [];
-  imgPoint = [];
+  modelpoint = [];
+  imgpoint = [];
   fidx = [];
-  for i = order
+  for i = [seed,order']
     isSeed = ismember(i, seed);
-    if ~isSeed && v4dist(i) > 350, break; end
-    p = pidx(i,1:2);
-    if p(1) == p(2), continue; end
+    if ~isSeed && v4dist(i) > 100, break; end
+    bound = v4(i,7:8);
+    if ismember(i+1,fidx) && v4(i+1,9)==v4(i,9) && bound(2) < v4(i+1,7) - 1
+      bound(2) = v4(i+1,7) - 1;
+    end
+    if ismember(i-1,fidx) && v4(i-1,9)==v4(i,9) && bound(1) > v4(i-1,8) + 1
+      bound(1) = v4(i-1,8) + 1;
+    end
+    bp = [image.lines{v4(i,9)}(bound,1:2),[1;1]] * InverseTransform(tran);
+    d = DiffMatrix(bp, model.line(:,1:2), 2);
+    [~,p] = min(d,[],2);
     if p(1) > p(2), range = p(1):-1:p(2); else range = p(1):p(2); end
-    if abs(p(1)-p(2)) > mlength/2
+    if abs(p(1)-p(2)) > mlength/2 && ~strcmp(noCycleMode,'nocycle')
       if p(1) > p(2), range = [p(1):mlength,1:p(2)]; else range = [p(1):-1:1,mlength:-1:p(2)]; end
     end
     canCover = sum(mlineCovered(range)==0);
-    if ~isSeed && canCover/length(range) < 0.25, continue; end
-    if ~isSeed && canCover < 20, continue; end
-    imgline = image.lines{v4(i,9)}(v4(i,7):v4(i,8),1:2);
-    tImgLine = [];
-    tImgLine(:,1) = (imgline(:,1)-tran(3))/tran(1);
-    tImgLine(:,2) = (imgline(:,2)-tran(4))/tran(2);
-    d = DiffMatrix(tImgLine, model.line(range,:),2);
-    [d,idx] = min(d,[],2);
-    idx = range(idx);
-    pset = (d<=v4dist(i)) & (mlineCovered(idx)==0)';
-    modelPoint = cat(1, modelPoint, model.line(idx(pset),1:2));
-    imgPoint = cat(1, imgPoint, imgline(pset,1:2));
+    if ~isSeed && (canCover/length(range) < 0.25 || canCover < 20), continue; end
     covered = covered + canCover;
-    fidx = cat(2, fidx, i);
     mlineCovered(range) = 1;
+    imgpoint = cat(1, imgpoint, image.lines{v4(i,9)}(bound(1):bound(2),1:2));
+    modelpoint = cat(1, modelpoint, model.line(range,1:2));
+    fidx = cat(2, fidx, i);
     if covered/mlength > 0.98, break; end
   end
-  Ax = modelPoint;
-  Ax(:,2) = 1;
-  tx = (Ax'*Ax)^(-1)*Ax'*imgPoint(:,1);
-  Ay = modelPoint;
-  Ay(:,1) = 1;
-  ty = (Ay'*Ay)^(-1)*Ay'*imgPoint(:,2);
-  t = [tx';ty(2),ty(1)];
-  dx = mean(((imgPoint(:,1)-tx(2))/tx(1)-modelPoint(:,1)).^2);
-  dy = mean(((imgPoint(:,2)-ty(1))/ty(2)-modelPoint(:,2)).^2);
-  d = sqrt(dx + dy);
+  imgr = sqrt(diag(cov(imgpoint,1)));
+  modelr = sqrt(diag(cov(modelpoint,1)));
+  imgc = mean(imgpoint);
+  modelc = mean(modelpoint);
+  t = [imgr./modelr, imgc'-modelc'.*imgr./modelr];
+  imgpoint = [imgpoint, ones(size(imgpoint,1),1)] * InverseTransform(t);
+  d = DiffMatrix(imgpoint, model.line, 2);
+  d = mean(min(d,[],2));
+end
+
+% Compute inverse transform matrix.
+% tran = [scalex, offsetx; scale, offsety].
+function f = InverseTransform(tran)
+  f = [1/tran(1),0;0,1/tran(2);-tran(3)/tran(1),-tran(4)/tran(2)];
 end
 
 % Compute difference matrix of two set of row vectors of specified width.

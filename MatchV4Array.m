@@ -9,13 +9,15 @@
 %   map line1 to line2. It is assumed that the transform involves only
 %   transition and scaling.
 %   This function uses only feature column 1~8:[x1,y1,x2,y2,a,b,startPoint,endPoint].
-function [mcs,avgDiff,cs,tran] = MatchV4Array(arr1, line1, arr2, line2)
+function [mcs,avgDiff,cs,tran] = MatchV4Array(arr1, line1, arr2, line2, noCycleMode)
   mcs = [];
   avgDiff = [];
   cs = {};
   tran = {};
   j = 1;
-  for i = 1:size(arr1,1);
+  startIdx = 1:size(arr1,1);
+  if exist('noCycleMode','var') && strcmp(noCycleMode,'nocycle'), startIdx = 1; end
+  for i = startIdx
     idx = [i:size(arr1,1),1:i-1];
     [m,d,c,t] = DirectMatch(arr1(idx,:),line1,arr2,line2);
     if ~isempty(c) && m > 0
