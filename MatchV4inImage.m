@@ -32,15 +32,15 @@ function f = MatchV4inImage(model, image, noCycleMode)
     [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t, r(2));
     [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t, r(3));
     cover = mean(cover);
-    if cover < 0.81 || d > 49, continue; end
-    if cover < 0.90 && d > 15, continue; end
+    if cover < 0.66 || (d > 49 && cover < 0.98) || d > 89, continue; end
+    if cover < 0.90 && d > 15 && m < 4, continue; end
     FindV4Feature('drawcolor', v4set(fidx,:), [repmat([1,0,0],size(c,1),1);repmat([0,0,1],length(fidx)-size(c,1),1)]);
     text(lines{i}(1,1),lines{i}(1,2),[num2str(i),':',num2str(cover),':',num2str(d)],'FontSize',18);
     if t(1)/t(2)>2.5 || t(1)/t(2)<0.4, continue; end
     rectangle('Position', [t(3),t(4),model.bound(3:4).*t(1:2)], 'LineWidth', 2);
     rect = [t(3:4),model.bound(3:4).*t(1:2)+t(3:4)];
     for i = 1:size(f,1)
-      if RectOverlap(rect,f(i,1:4)) > 0.5 && d < f(i,6)
+      if RectOverlap(rect,f(i,1:4)) > 0.1 && d < f(i,6)
         f(i,:) = [rect, cover, d];
         rect = [];
       end
