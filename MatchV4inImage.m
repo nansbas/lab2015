@@ -1,5 +1,6 @@
 function f = MatchV4inImage(model, image, noCycleMode)
   if ~exist('noCycleMode','var'), noCycleMode = 'cycle'; end
+  [threshold,ratio2,dmm] = GetThreshold(2);
   lines = image.lines;
   v4set = image.v4;
   v4set(:,10:11) = ComputeV4MidPoint(v4set);
@@ -25,14 +26,13 @@ function f = MatchV4inImage(model, image, noCycleMode)
     [m,d,c,t] = MatchV4Array(model.v4, model.line, v4, lines{i}, noCycleMode);
     if m < 1, continue; end
     if t(1) <= 0 || t(2) <= 0, continue; end
-    if t(1)/t(2)>2.5 || t(1)/t(2)<0.4, continue; end
-    if d/m/m > 6, continue; end % for applelogo use 6
+    if t(1)/t(2)>ratio2(2) || t(1)/t(2)<ratio2(1), continue; end
+    if d/m/m > dmm, continue; end
     if m > 4, r = [72,50,42]; else r = [170,72,42]; end
     [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t, r(1));
     [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t, r(2));
     [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t, r(3));
     cover = mean(cover);
-    threshold = GetThreshold(1);
     shallContinue = 0;
     for j = 1:size(threshold,1)
       if cover < threshold(j,1) && d > threshold(j,2) && m < threshold(j,3), shallContinue = 1; end
@@ -40,11 +40,11 @@ function f = MatchV4inImage(model, image, noCycleMode)
     if shallContinue, continue; end
     FindV4Feature('drawcolor', v4set(fidx,:), [repmat([1,0,0],size(c,1),1);repmat([0,0,1],length(fidx)-size(c,1),1)]);
     text(lines{i}(1,1),lines{i}(1,2),[num2str(i),':',num2str(cover),':',num2str(d)],'FontSize',18);
-    if t(1)/t(2)>2.5 || t(1)/t(2)<0.4, continue; end
+    if t(1)/t(2)>ratio2(2) || t(1)/t(2)<ratio2(1), continue; end
     rectangle('Position', [t(3),t(4),model.bound(3:4).*t(1:2)], 'LineWidth', 2);
     rect = [t(3:4),model.bound(3:4).*t(1:2)+t(3:4)];
     for j = 1:size(f,1)
-      if RectOverlap(rect,f(j,1:4)) > 0.1 && d < f(j,6)
+      if RectOverlap(rect,f(j,1:4)) > 0.02 && d < f(j,6)
         f(j,:) = [rect, cover, d, m];
         rect = [];
         break;
@@ -58,10 +58,15 @@ function f = MatchV4inImage(model, image, noCycleMode)
 end
 
 % Threshold.
-function f = GetThreshold(catId)
+function [threshold,ratio,dmm] = GetThreshold(catId)
   if catId == 1
-    f = [0.66, -1, inf; 0.98, 49, inf; inf, 89, inf; 0.9, 15, 4];
+    threshold = [0.66, -1, inf; 0.98, 49, inf; inf, 89, inf; 0.9, 15, 4];
+    ratio = [0.4, 2.5];
+    dmm = 6;
   elseif catId == 2
+    threshold = [0.719, -1, inf; 0.95, 36.5, inf; inf, 54, inf; 0.8, 14.3, inf; 0.88, 15, 4];
+    ratio = [0.24, 4.2];
+    dmm = 14;
   end
 end
 
