@@ -26,30 +26,43 @@ function f = MatchV4inImage(model, image, noCycleMode)
     if m < 1, continue; end
     if t(1) <= 0 || t(2) <= 0, continue; end
     if t(1)/t(2)>2.5 || t(1)/t(2)<0.4, continue; end
-    if d/m/m > 6, continue; end
+    if d/m/m > 6, continue; end % for applelogo use 6
     if m > 4, r = [72,50,42]; else r = [170,72,42]; end
     [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t, r(1));
     [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t, r(2));
     [fidx,t,cover,d] = ExtendMatch(model, image, v4idx(c(:,2)), t, r(3));
     cover = mean(cover);
-    if cover < 0.66 || (d > 49 && cover < 0.98) || d > 89, continue; end
-    if cover < 0.90 && d > 15 && m < 4, continue; end
+    threshold = GetThreshold(1);
+    shallContinue = 0;
+    for j = 1:size(threshold,1)
+      if cover < threshold(j,1) && d > threshold(j,2) && m < threshold(j,3), shallContinue = 1; end
+    end
+    if shallContinue, continue; end
     FindV4Feature('drawcolor', v4set(fidx,:), [repmat([1,0,0],size(c,1),1);repmat([0,0,1],length(fidx)-size(c,1),1)]);
     text(lines{i}(1,1),lines{i}(1,2),[num2str(i),':',num2str(cover),':',num2str(d)],'FontSize',18);
     if t(1)/t(2)>2.5 || t(1)/t(2)<0.4, continue; end
     rectangle('Position', [t(3),t(4),model.bound(3:4).*t(1:2)], 'LineWidth', 2);
     rect = [t(3:4),model.bound(3:4).*t(1:2)+t(3:4)];
-    for i = 1:size(f,1)
-      if RectOverlap(rect,f(i,1:4)) > 0.1 && d < f(i,6)
-        f(i,:) = [rect, cover, d];
+    for j = 1:size(f,1)
+      if RectOverlap(rect,f(j,1:4)) > 0.1 && d < f(j,6)
+        f(j,:) = [rect, cover, d, m];
         rect = [];
+        break;
       end
     end
     if ~isempty(rect)
-      f = cat(1, f, [rect, cover, d]);
+      f = cat(1, f, [rect, cover, d, m]);
     end
   end
   hold off
+end
+
+% Threshold.
+function f = GetThreshold(catId)
+  if catId == 1
+    f = [0.66, -1, inf; 0.98, 49, inf; inf, 89, inf; 0.9, 15, 4];
+  elseif catId == 2
+  end
 end
 
 % Compute the middle peak point of V4 features.
