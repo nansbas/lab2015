@@ -92,7 +92,7 @@ function DrawResult(f, colororder)
     xy = [x,(mu1*f(i,5)+mu2*f(i,6)),ones(21,1)]*t;
     arg{i*2-1} = xy(:,1);
     arg{i*2} = xy(:,2);
-    text(xy(11,1),xy(11,2),[' ',num2str(i)],'FontSize',20);
+    text(xy(11,1),xy(11,2),[' ',num2str(f(i,9))],'FontSize',20);
   end
   plot(arg{:}, 'LineWidth', 3);
   axis equal

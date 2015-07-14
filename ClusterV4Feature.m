@@ -1,61 +1,82 @@
-function [f,p] = ClusterV4Feature(f, p, sample, posFactor)
-  assigned = zeros(1,size(f,1));
-  idx = 1:size(f,1);
-  newf = [];
-  newp = [];
-  x = sample(:,[1,3]);
-  y = sample(:,[2,4]);
-  minX = min(x(:));
-  minY = min(y(:));
-  maxX = max(x(:));
-  maxY = max(y(:));
-  pos = [sample(:,1:4),ones(size(sample,1),1)] ...
-    * [0.5,0; 0,0.5; 0.5,0; 0,0.5; -minX,-minY] * [1/(maxX-minX),0;0,1/(maxY-minY)];
-  if isempty(p)
-    p = zeros(size(f,1),2);
+function [c,l,n,d] = ClusterV4Feature(c, ethzv4)
+  x = [];
+  for i = 1:length(ethzv4.sample)
+    k = ethzv4.sample{i};
+    x = cat(1, x, ethzv4.files(k(1)).v4(k(2:length(k)),:));
   end
-  sample(:,1:4) = sample(:,1:4)*[1,0,-1,0;0,1,0,-1;-1,0,1,0;0,-1,0,1];
-  sample(:,1:4) = sample(:,1:4)./repmat(sqrt(sum(sample(:,1:2).^2,2)),1,4);
-  for i = 1:size(sample,1)
-    if isnan(sample(i,1)); continue; end
-    k = -1;
-    minDiff = 0;
-    for j = idx(~assigned)
-      d1 = (sample(i,1)-f(j,1))^2+(sample(i,2)-f(j,2))^2;
-      d2 = (sample(i,1)-f(j,3))^2+(sample(i,2)-f(j,4))^2;
-      if d1 <= d2
-        d = d1 + MuDiff(sample(i,5)-f(j,5),sample(i,6)-f(j,6));
-      else
-        d = d2 + MuDiff(sample(i,5)+f(j,5),sample(i,6)+f(j,6));
-      end
-      d = d + posFactor*sum((pos(i,1:2)-p(j,1:2)).^2);
-      if d < 0.2 && (k == -1 || d < minDiff)
-        minDiff = d;
-        k = j;
-        swap = (d1 > d2);
-      end
-    end
-    if k > 0
-      assigned(k) = 1;
-      if swap
-        s = sample(i,[3,4,1,2,5,6]).*[1,1,1,1,-1,-1];
-      else
-        s = sample(i,1:6);
-      end
-      f(k,1:6) = (f(k,1:6)*f(k,7) + s) / (f(k,7)+1);
-      p(k,1:2) = (p(k,1:2)*f(k,7) + pos(i,1:2)) / (f(k,7)+1);
-      f(k,7) = f(k,7) + 1;
-      f(k,1:4) = f(k,1:4)/sqrt(f(k,1)*f(k,1)+f(k,2)*f(k,2));
-    else
-      newf = cat(1, newf, [sample(i,1:6),1]);
-      newp = cat(1, newp, pos(i,1:2));
-    end
+  [c,l1,n,d] = Cluster(c, x);
+  j = 1;
+  for i = 1:length(ethzv4.sample)
+    k = ethzv4.sample{i};
+    range = j:j+length(k)-2;
+    v4 = x(range,:);
+    v4(:,9) = l1(range);
+    FindV4Feature('draw', v4);
+    saveas(gcf,['temp/label-',num2str(i),'.png']);
+    close gcf;
+    l{i} = [k(1), l1(range)'];
+    j = j + length(k) - 1;
   end
-  f = [f;newf];
-  p = [p;newp];
 end
 
+% Cluster V4 features with k-means.
+function [c,l,n,d] = Cluster(c, x)
+  x = NormalizeV4(x);
+  c = NormalizeV4(c);
+  d1 = DiffMatrix(x(:,1:2), c(:,1:2), 2);
+  d2 = DiffMatrix(x(:,3:4), c(:,1:2), 2);
+  da = DiffMatrix(x(:,5), c(:,5), 1);
+  db = DiffMatrix(x(:,6), c(:,6), 1);
+  dmu = MuDiff(da, db);
+  da = DiffMatrix(-x(:,5), c(:,5), 1);
+  db = DiffMatrix(-x(:,6), c(:,6), 1);
+  dmu2 = MuDiff(da, db);
+  reverse = (d2 < d1);
+  dmu(reverse) = dmu2(reverse);
+  d1(reverse) = d2(reverse);
+  d = d1/2 + dmu;
+  [md, l] = min(d, [], 2);
+  n = ones(1,size(c,1));
+  d = zeros(1,size(c,1));
+  for i = 1:size(x,1)
+    if reverse(i,l(i))
+      x(i,1:4) = x(i,[3,4,1,2]);
+      x(i,5:6) = -x(i,5:6);
+    end
+    n(l(i)) = n(l(i)) + 1;
+    c(l(i),1:6) = c(l(i),1:6) + x(i,1:6);
+    if md(i) > d(l(i))
+      d(l(i)) = md(i);
+    end
+  end
+  for i = 1:size(c,1)
+    c(i,1:6) = c(i,1:6) / n(i);
+  end
+  c = NormalizeV4(c);
+  n = n - 1;
+end
 
+% Normalize V4 feature.
+function v = NormalizeV4(v)
+  v(:,1:4) = v(:,1:4)*[1,0,-1,0;0,1,0,-1;-1,0,1,0;0,-1,0,1];
+  v(:,1:4) = v(:,1:4)./repmat(sqrt(sum(v(:,1:2).^2,2)),1,4);
+end
+
+% Compute difference matrix of two set of row vectors of specified width.
+function f = DiffMatrix(rows1, rows2, width)
+  if width == 1
+    f = abs(repmat(rows1(:,1),1,size(rows2,1)) - repmat(rows2(:,1)',size(rows1,1),1));
+  else
+    f = zeros(size(rows1,1),size(rows2,1));
+    for i = 1:width
+      d = repmat(rows1(:,i),1,size(rows2,1)) - repmat(rows2(:,i)',size(rows1,1),1);
+      f = f + d.^2;
+    end
+    f = sqrt(f);
+  end
+end
+
+% Calculate difference of features for parameters a, b.
 function f = MuDiff(a,b)
-  f = 0.4*a*a+16/15*b*b+1.2*a*b;
+  f = 0.4*(a.^2)+16/15*(b.^2)+1.2*(a.*b);
 end
