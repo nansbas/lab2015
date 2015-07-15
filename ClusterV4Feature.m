@@ -1,21 +1,40 @@
-function [c,l,n,d] = ClusterV4Feature(c, ethzv4)
+function [c,l,n,d] = ClusterV4Feature(c, ethzv4, mode)
   x = [];
   for i = 1:length(ethzv4.sample)
     k = ethzv4.sample{i};
-    x = cat(1, x, ethzv4.files(k(1)).v4(k(2:length(k)),:));
+    x = cat(1, x, ethzv4.files(k(1)).v4(k(2:length(k)),1:6));
   end
-  [c,l1,n,d] = Cluster(c, x);
+  [c,l1,n,d] = Cluster(c(:,1:6), x);
   j = 1;
   for i = 1:length(ethzv4.sample)
     k = ethzv4.sample{i};
     range = j:j+length(k)-2;
-    v4 = x(range,:);
-    v4(:,9) = l1(range);
-    FindV4Feature('draw', v4);
-    saveas(gcf,['temp/label-',num2str(i),'.png']);
-    close gcf;
+    if exist('mode','var') && (strcmp(mode,'label') || strcmp(mode,'drawlabel'))
+      l1(range) = FeaturePosition(ethzv4.model.label, l1(range));
+    end
+    if exist('mode','var') && (strcmp(mode,'draw') || strcmp(mode,'drawlabel'))
+      v4 = x(range,:);
+      v4(:,9) = l1(range);
+      FindV4Feature('draw', v4);
+      saveas(gcf,['temp/label-',num2str(i),'.png']);
+      close gcf;
+    end
     l{i} = [k(1), l1(range)'];
     j = j + length(k) - 1;
+  end
+end
+
+% Get feature position according to feature cluster label. 
+function p = FeaturePosition(label, f)
+  p = f;
+  i = 1;
+  j = 1;
+  while i <= length(f) && j <= length(label)
+    if ismember(f(i), label{j})
+      p(i) = j;
+      i = i + 1;
+    end
+    j = j + 1;
   end
 end
 
