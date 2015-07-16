@@ -1,4 +1,8 @@
 function [c,l,n,d] = ClusterV4Feature(c, ethzv4, mode)
+  if exist('mode','var') && strcmp(mode,'cluster')
+    [c,l,n,d] = Cluster(c, ethzv4);
+    return
+  end
   x = [];
   for i = 1:length(ethzv4.sample.index)
     k = ethzv4.sample.index{i};
