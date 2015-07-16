@@ -1,13 +1,13 @@
 function [c,l,n,d] = ClusterV4Feature(c, ethzv4, mode)
   x = [];
-  for i = 1:length(ethzv4.sample)
-    k = ethzv4.sample{i};
+  for i = 1:length(ethzv4.sample.index)
+    k = ethzv4.sample.index{i};
     x = cat(1, x, ethzv4.files(k(1)).v4(k(2:length(k)),1:6));
   end
   [c,l1,n,d] = Cluster(c(:,1:6), x);
   j = 1;
-  for i = 1:length(ethzv4.sample)
-    k = ethzv4.sample{i};
+  for i = 1:length(ethzv4.sample.index)
+    k = ethzv4.sample.index{i};
     range = j:j+length(k)-2;
     if exist('mode','var') && (strcmp(mode,'label') || strcmp(mode,'drawlabel'))
       l1(range) = FeaturePosition(ethzv4.model.label, l1(range));
