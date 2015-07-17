@@ -1,6 +1,6 @@
 function [c,l,n,d] = ClusterV4Feature(c, ethzv4, mode)
   if exist('mode','var') && strcmp(mode,'cluster')
-    [c,l,n,d] = Cluster(c, ethzv4);
+    [~,l,n,~,d] = Cluster(c, ethzv4);
     return
   end
   x = [];
@@ -43,7 +43,12 @@ function p = FeaturePosition(label, f)
 end
 
 % Cluster V4 features with k-means.
-function [c,l,n,d] = Cluster(c, x)
+%   c: cluster center;
+%   l: data label;
+%   n: number of cluster label;
+%   d: max cluster radius;
+%   md: data distance to cluster center.
+function [c,l,n,d,md] = Cluster(c, x)
   x = NormalizeV4(x);
   c = NormalizeV4(c);
   d1 = DiffMatrix(x(:,1:2), c(:,1:2), 2);

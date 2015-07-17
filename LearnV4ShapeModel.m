@@ -1,4 +1,8 @@
-function [x,y,s,d,a,n] = LearnV4ShapeModel(ethzv4)
+function [x,y,s,d,a,n] = LearnV4ShapeModel(ethzv4, mode)
+  if exist('mode','var') && strcmp(mode,'compute')
+    [x,y,s,d,a] = ComputePositionMatrix(ethzv4);
+    return
+  end
   n = length(ethzv4.model.label);
   x = NewArray(n);
   y = NewArray(n);
