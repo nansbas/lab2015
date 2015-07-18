@@ -22,7 +22,7 @@ function [result,judge] = FindV4ModelInImage(cluster, model, image)
       current(1,i) = -1;
       i = i - 1;
     elseif ismember(label(current(1,i)), model.label{i})
-      epsilon = 0.5;
+      epsilon = 0;
       ok = 1;
       i1 = current(1,i);
       for j = 1:i-1
@@ -77,7 +77,7 @@ function f = JudgeResult(result, v4, groundtruth)
     overlap = RectOverlap(rect, groundtruth);
     ignoreThis = 0;
     for j = 1:size(f,1)
-      if RectOverlap(rect, f(j,1:4)) > 0.5
+      if RectOverlap(rect, f(j,1:4)) > 0.1
         if size(r,2) > f(j,5) || (size(r,2) == f(j,5) && mean(r(3,:)) < f(j,6))
           f(j,:) = [rect, size(r,2), mean(r(3,:)), overlap];
         end
