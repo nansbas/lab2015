@@ -1,4 +1,19 @@
+result = [];
+for i=1:5
+  for j=1:length(ethzv4(i).files)
+    [r,jj]=FindV4ModelInImage(ethzv4(1).cluster,ethzv4(1).model,ethzv4(i).files(j));
+    if i~=1 && ~isempty(jj)
+      jj(:,7) = 0;
+    end
+    if ~isempty(jj)
+      jj = [repmat(i,size(jj,1),1),repmat(j,size(jj,1),1),jj];
+    end
+    result=[result;jj];
+    fprintf('ok: %d, %d\n', i, j);
+  end
+end
 %% Find where can set empty label.
+%{
 for i = [1,2,4,5]
   n = length(ethzv4(i).model.label);
   ignoreAfter = zeros(n,n);
@@ -14,6 +29,7 @@ for i = [1,2,4,5]
   end
   ethzv4(i).model.ignoreAfter = ignoreAfter;
 end
+%}
 %% Check label and cluster consistent.
 %{
 for i=[1,2,4,5]
