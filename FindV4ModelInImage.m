@@ -15,7 +15,8 @@ function [result,judge] = FindV4ModelInImage(cluster, model, image)
     end
     current(1,i) = current(1,i) + 1;
     if current(1,i) == 0
-      if model.ignoreAfter(i, LastNonZero(current(1,1:i-1))+1)
+      if model.ignoreAfter(i, LastNonZero(current(1,1:i-1))+1) ...
+        && sum(current(1,1:i-1)~=0) + length(model.label) - i >= model.minLength
         i = i + 1;
       end
     elseif current(1,i) > length(label)
@@ -74,19 +75,26 @@ function f = JudgeResult(result, v4, groundtruth)
     r = r(:, r(1,:)~=0);
     p = [v4(r(1,:),1:2);v4(r(1,:),3:4);v4(r(1,:),10:11)];
     rect = [min(p(:,1)),min(p(:,2)),max(p(:,1)),max(p(:,2))];
-    overlap = RectOverlap(rect, groundtruth);
+    [overlap,idx] = RectOverlap(rect, groundtruth);
     ignoreThis = 0;
     for j = 1:size(f,1)
-      if RectOverlap(rect, f(j,1:4)) > 0.1
+      if RectOverlap(rect, f(j,1:4)) > 0
         if size(r,2) > f(j,5) || (size(r,2) == f(j,5) && mean(r(3,:)) < f(j,6))
-          f(j,:) = [rect, size(r,2), mean(r(3,:)), overlap];
+          f(j,:) = [rect, size(r,2), mean(r(3,:)), overlap, idx];
+        end
+        ignoreThis = 1;
+        break;
+      end
+      if f(j,8) == idx
+        if overlap > f(j,7)
+          f(j,:) = [rect, size(r,2), mean(r(3,:)), overlap, idx];
         end
         ignoreThis = 1;
         break;
       end
     end
     if ~ignoreThis
-      f = [f; rect, size(r,2), mean(r(3,:)), overlap];
+      f = [f; rect, size(r,2), mean(r(3,:)), overlap, idx];
     end
   end
 end

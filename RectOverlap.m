@@ -1,4 +1,4 @@
-function f = RectOverlap(rect, rects)
+function [f,idx] = RectOverlap(rect, rects)
   area = (rect(3)-rect(1)) * (rect(4)-rect(2));
   a = (rects(:,3)-rects(:,1)) .* (rects(:,4)-rects(:,2));
   for i = 1:size(rects,1)
@@ -6,7 +6,7 @@ function f = RectOverlap(rect, rects)
       LineOverlap(rect(2),rect(4),rects(i,2),rects(i,4)) / ...
       max(area, a(i));
   end
-  f = max(f);
+  [f,idx] = max(f);
 end
 
 function f = LineOverlap(l1, r1, l2, r2)

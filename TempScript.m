@@ -1,8 +1,9 @@
 result = [];
+runCat = 2;
 for i=1:5
   for j=1:length(ethzv4(i).files)
-    [r,jj]=FindV4ModelInImage(ethzv4(1).cluster,ethzv4(1).model,ethzv4(i).files(j));
-    if i~=1 && ~isempty(jj)
+    [r,jj]=FindV4ModelInImage(ethzv4(runCat).cluster,ethzv4(runCat).model,ethzv4(i).files(j));
+    if i~=runCat && ~isempty(jj)
       jj(:,7) = 0;
     end
     if ~isempty(jj)
