@@ -1,4 +1,23 @@
+%ethzv4 = [];
+[rf,out] = MakeSimpleRF(9,0:5:175,[6,6]);
+for i = 1:5
+  for j = 1:length(ethz(i).files)
+    fprintf('Run on image %d:%d:%s ... ... ', i, j, ethz(i).files(j).name);
+    img = ethz(i).files(j).image;
+    [out,ori,ridge] = SimpleCell(img, rf);
+    [map,lines] = FindLine(ridge, ori, 0.8, 20);
+    f = FindV4Feature(lines, 0.05, 20);
+    ethzv4(i).files(j).v4 = f;
+    ethzv4(i).files(j).lines = lines;
+    rect = ethz(i).files(j).groundtruth;
+    ethzv4(i).files(j).groundtruth = rect;
+    ethzv4(i).files(j).name = ethz(i).files(j).name;
+    rect(:,3:4) = rect(:,3:4) - rect(:,1:2);
+    fprintf('OK\n');
+  end
+end
 %% Run detection.
+%{
 for i=[4,5]
   runCat = i;
   result = [];
@@ -31,7 +50,7 @@ idx2 = [idx2, size(r,1)];
 r = r(idx2,1:2);
 close all
 plot(r(:,1),r(:,2));
-%
+%}
 %% Find where can set empty label.
 %{
 for i = [1,2,4,5]
