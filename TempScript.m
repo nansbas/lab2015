@@ -34,9 +34,9 @@ end
 %}
 %% Run detection.
 %
+for runCat = 1:5
+result = [];
 for i=1:5
-  runCat = 1;
-  result = [];
   for j=1:length(ethzv4(i).files)
     [r,jj]=FindV4ModelInImage(ethzv4(runCat).cluster,ethzv4(runCat).model,ethzv4(i).files(j));
     if i~=runCat && ~isempty(jj)
@@ -48,8 +48,8 @@ for i=1:5
     result=[result;jj];
     fprintf('ok: %d, %d\n', i, j);
   end
-  ethzv4(i).result = result;
 end
+ethzv4(runCat).result = result;
 allpos = [44,55,91,66,33];
 [~,idx] = sort(result(:,8)/max(result(:,8))-result(:,7));
 r = result(idx,:);
@@ -66,6 +66,8 @@ idx2 = [idx2, size(r,1)];
 r = r(idx2,1:2);
 close all
 plot(r(:,1),r(:,2));
+ethzv4(runCat).fppi = r;
+end
 %}
 %% Find where can set empty label.
 %{
