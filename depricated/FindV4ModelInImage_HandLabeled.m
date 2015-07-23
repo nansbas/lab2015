@@ -1,11 +1,11 @@
 function [result,judge] = FindV4ModelInImage(cluster, model, image)
-  [~,label,~,~,dist] = ClusterV4Feature(cluster.c, image.v4);
+  [~,label,~,dist] = ClusterV4Feature(cluster.c, image.v4, 'cluster');
   for i = 1:length(cluster.d)
     label(label == i & dist > cluster.d(i)) = 0;
   end
-  [x,y,s,d,a] = ComputeV4PositionMatrix(image.v4);
+  [x,y,s,d,a] = LearnV4ShapeModel(image.v4, 'compute');
   result = {};
-  current = zeros(3,size(model.label,1)) - 1;
+  current = zeros(3,length(model.label)) - 1;
   i = 1;
   while i > 0
     if i > size(current,2)
@@ -14,20 +14,15 @@ function [result,judge] = FindV4ModelInImage(cluster, model, image)
       continue;
     end
     current(1,i) = current(1,i) + 1;
-    prev = 0;
-    if i > 1, prev = current(2,i-1); end
     if current(1,i) == 0
-      if model.ignore(i, LastNonZero(current(1,1:i-1))+1) ...
-        && sum(current(1,1:i-1)==0) < model.maxZero ...
-        && model.label(i, prev+1, current(1,i)+1)
-        current(2,i) = 0;
-        current(3,i) = 0;
+      if model.ignoreAfter(i, LastNonZero(current(1,1:i-1))+1) ...
+        && sum(current(1,1:i-1)~=0) + length(model.label) - i >= model.minLength
         i = i + 1;
       end
     elseif current(1,i) > length(label)
       current(1,i) = -1;
       i = i - 1;
-    elseif model.label(i, prev+1, label(current(1,i))+1)
+    elseif ismember(label(current(1,i)), model.label{i})
       epsilon = 0;
       ok = 1;
       i1 = current(1,i);

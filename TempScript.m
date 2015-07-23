@@ -1,3 +1,4 @@
+%{
 ethzv4 = [];
 [rf,out] = MakeSimpleRF(9,0:5:175,[6,6]);
 for i = 1:12
@@ -17,7 +18,7 @@ for i = 1:12
   end
 end
 for i=1:12
-  [c,dist,label,maxZero,x,y,s,d,a,n] = LearnV4ShapeModel(ethzv4(i).files);
+  [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(ethzv4(i).files);
   ethzv4(i).cluster.c = c;
   ethzv4(i).cluster.d = dist;
   ethzv4(i).model.label = label;
@@ -28,11 +29,13 @@ for i=1:12
   ethzv4(i).model.d = d;
   ethzv4(i).model.a = a;
   ethzv4(i).model.n = n;
+  ethzv4(i).model.ignore = ignore;
 end
+%}
 %% Run detection.
-%{
-for i=[4,5]
-  runCat = i;
+%
+for i=1:5
+  runCat = 1;
   result = [];
   for j=1:length(ethzv4(i).files)
     [r,jj]=FindV4ModelInImage(ethzv4(runCat).cluster,ethzv4(runCat).model,ethzv4(i).files(j));
@@ -51,8 +54,8 @@ allpos = [44,55,91,66,33];
 [~,idx] = sort(result(:,8)/max(result(:,8))-result(:,7));
 r = result(idx,:);
 for i = 1:size(r,1)
-  r(i,1) = sum(r(1:i,9)<=0.1)/255;
-  r(i,2) = sum(r(1:i,9)>0.1)/allpos(runCat);
+  r(i,1) = sum(r(1:i,9)<=0.4)/255;
+  r(i,2) = sum(r(1:i,9)>0.4)/allpos(runCat);
 end
 [~,idx] = unique(r(:,1));
 idx2 = 1;

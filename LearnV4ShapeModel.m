@@ -1,13 +1,13 @@
 % Learn V4 Shape Model.
 %   files: struct-array with `v4`, `groundtruth`.
-function [c,dist,label,maxZero,x,y,s,d,a,n] = LearnV4ShapeModel(files)
+function [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(files)
   % label positive samples.
   fprintf('label sample v4 features ... ... ');
-  [c,label] = LabelSampleV4Feature(files);
-  maxZero = max(sum(label(:,3:size(label,2))==0,2));
+  [c,plabel] = LabelSampleV4Feature(files);
+  maxZero = max(sum(plabel(:,3:size(plabel,2))==0,2));
   fprintf('ok\n');
   % clustering.
-  x = GetAllLabeledFeatures(files, label);
+  x = GetAllLabeledFeatures(files, plabel);
   for i = 1:20
     fprintf('clustering ... ... ');
     [c1,l,~,d,~] = ClusterV4Feature(c, x);
@@ -20,16 +20,31 @@ function [c,dist,label,maxZero,x,y,s,d,a,n] = LearnV4ShapeModel(files)
   end
   c = c0;
   dist = d0;
-  % align cluster label and position label.
-  label = cell(1,size(label,2)-2);
-  for i = 1:length(l0)
-    if ~ismember(l0(i),label{x(i,10)})
-      label{x(i,10)} = cat(2, label{x(i,10)}, l0(i));
-    end
-  end
   % learn position model.
   v4 = x;
-  [x,y,s,d,a,n] = LearnPositionModel(v4(:,1:9), v4(:,10), v4(:,11), length(label));
+  [x,y,s,d,a,n] = LearnPositionModel(v4(:,1:9), v4(:,10), v4(:,11), size(plabel,2)-2);
+  [label,ignore] = LearnLabelMatrix(v4(:,10), l0, v4(:,11), size(plabel,2)-2);
+end
+
+function [f,ignore] = LearnLabelMatrix(plabel, clabel, sampleIdx, nLabel)
+  f = zeros(nLabel, nLabel+1, nLabel+1);
+  ignore = zeros(nLabel, nLabel+1);
+  for i = 1:max(sampleIdx)
+    cl = clabel(sampleIdx == i);
+    pl = plabel(sampleIdx == i);
+    c = zeros(1,nLabel);
+    for j = 1:length(pl)
+      c(pl(j)) = cl(j);
+    end
+    lastNonZero = 0;
+    for j = 1:nLabel
+      prev = 0;
+      if j > 1, prev = c(j-1); end
+      f(j,prev+1,c(j)+1) = 1;
+      if c(j) == 0, ignore(j,lastNonZero+1) = 1; end
+      if c(j) ~= 0, lastNonZero = j; end
+    end
+  end
 end
 
 % Get all labeled features.
