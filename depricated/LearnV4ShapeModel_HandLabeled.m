@@ -1,51 +1,9 @@
-% Learn V4 Shape Model.
-%   files: struct-array with `v4`, `groundtruth`.
-function [c,d,label] = LearnV4ShapeModel(files)
-  % label positive samples.
-  fprintf('label sample v4 features ... ... ');
-  [c,label] = LabelSampleV4Feature(files);
-  fprintf('ok\n');
-  % clustering.
-  x = GetAllLabeledFeatures(files, label);
-  for i = 1:20
-    fprintf('clustering ... ... ');
-    [c1,l,~,d,~] = ClusterV4Feature(c, x);
-    fprintf(' mean(err) = %f\n', mean(d));
-    if i > 1 && mean(d) >= mean(d0), break; end
-    c0 = c;
-    d0 = d;
-    l0 = l;
-    c = c1;
+function [x,y,s,d,a,n] = LearnV4ShapeModel(ethzv4, mode)
+  if exist('mode','var') && strcmp(mode,'compute')
+    [x,y,s,d,a] = ComputePositionMatrix(ethzv4);
+    return
   end
-  c = c0;
-  d = d0;
-  % align cluster label and position label.
-  label = cell(1,size(label,2)-2);
-  for i = 1:length(l0)
-    if ~ismember(l0(i),label{x(i,10)})
-      label{x(i,10)} = cat(2, label{x(i,10)}, l0(i));
-    end
-  end
-end
-
-% Get all labeled features.
-function f = GetAllLabeledFeatures(files, label)
-  f = [];
-  lsize = size(label,2);
-  for i = 1:size(label,1)
-    fidx = label(i,2);
-    idx = 1:(lsize - 2);
-    v4idx = label(i,3:lsize);
-    idx = idx(v4idx ~= 0);
-    v4idx = v4idx(v4idx ~= 0);
-    v4 = files(fidx).v4(v4idx,1:9);
-    v4(:,10) = idx;
-    f = cat(1, f, v4);
-  end
-end
-
-function NoName()
-  n = size(label,2) - 2;
+  n = length(ethzv4.model.label);
   x = NewArray(n);
   y = NewArray(n);
   s = NewArray(n);
@@ -111,6 +69,57 @@ function NoName()
   temp = y(:,:,2); temp(n>0) = temp(n>0) ./ n(n>0); y(:,:,2) = sqrt(temp);
   temp = s(:,:,2); temp(n>0) = temp(n>0) ./ n(n>0); s(:,:,2) = sqrt(temp);
   temp = d(:,:,2); temp(n>0) = temp(n>0) ./ n(n>0); d(:,:,2) = sqrt(temp);
+end
+
+% Compute pairwise co-related position matrix of V4 features.
+%   x: relative x position;
+%   y: relative y position;
+%   s: log relative scale;
+%   d: relative distance (end-point distance, or, adjacency);
+%   a: relative direction in atan2(y,x).
+%   Relative means to divide by the scale of the row-indexed base feature.
+function [x,y,s,d,a] = ComputePositionMatrix(v4)
+  v4(:,10:12) = ComputePeakPointAndScale(v4);
+  x = DiffMatrix(v4(:,10), v4(:,10), 1);
+  y = DiffMatrix(v4(:,11), v4(:,11), 1);
+  s = repmat(v4(:,12), 1, size(v4,1));
+  x = x ./ s;
+  y = y ./ s;
+  d(:,:,1) = DiffMatrix(v4(:,1:2),v4(:,1:2),2);
+  d(:,:,2) = DiffMatrix(v4(:,1:2),v4(:,3:4),2);
+  d(:,:,3) = DiffMatrix(v4(:,3:4),v4(:,1:2),2);
+  d(:,:,4) = DiffMatrix(v4(:,3:4),v4(:,3:4),2);
+  d = min(d,[],3) ./ s;
+  s = repmat(v4(:,12)', size(v4,1), 1) ./ s; 
+  adj = (((DiffMatrix(v4(:,7),v4(:,7),1)>=0 & DiffMatrix(v4(:,8),v4(:,7),1)<=0) | ...
+    (DiffMatrix(v4(:,7),v4(:,8),1)>=0 & DiffMatrix(v4(:,8),v4(:,8),1)<=0)) & ...
+    DiffMatrix(v4(:,9), v4(:,9), 1) == 0);
+  d(adj) = 0;
+  s = log(s);
+  a = atan2(y, x);
+end
+
+% Compute the middle peak point of V4 features.
+function f = ComputePeakPointAndScale(v4)
+  ab = sum(v4(:,5:6),2);
+  ee = ones(size(v4,1),1);
+  f(:,1) = sum(v4(:,1:4).*[ee,ab,ee,-ab],2)/2;
+  f(:,2) = sum(v4(:,1:4).*[-ab,ee,ab,ee],2)/2;
+  f(:,3) = sqrt(sum((v4(:,1:4)*[0.5,0;0,0.5;-0.5,0;0,-0.5]).^2,2));
+end
+
+% Compute difference matrix of two set of row vectors of specified width.
+function f = DiffMatrix(rows1, rows2, width)
+  if width == 1
+    f = -repmat(rows1(:,1),1,size(rows2,1)) + repmat(rows2(:,1)',size(rows1,1),1);
+  else
+    f = zeros(size(rows1,1),size(rows2,1));
+    for i = 1:width
+      d = repmat(rows1(:,i),1,size(rows2,1)) - repmat(rows2(:,i)',size(rows1,1),1);
+      f = f + d.^2;
+    end
+    f = sqrt(f);
+  end
 end
 
 % Initialize array (mean, err, max, min).

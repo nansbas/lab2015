@@ -6,6 +6,7 @@
 %   corresponding feature.
 function [c,label] = LabelSampleV4Feature(files)
   x = NormaliseV4ComputePositionScale(files);
+  % sort v4 sets in ascending order of size.
   len = [];
   for i = 1:length(x)
     len(i) = size(x{i},1);
@@ -14,13 +15,16 @@ function [c,label] = LabelSampleV4Feature(files)
   for i = 1:length(idx)
     x1{i} = x{idx(i)};
   end
+  % run clustering 8 times.
   c = [];
   for i = 1:8
-    [c,~,count,cover] = ClusterFeatures(c, x1);
+    [c,~,count,~] = ClusterFeatures(c, x1);
   end
+  % take the biggest 14 clusters.
   [~,idx] = sort(count, 'descend');
   c = c(idx,:);
   c = c(1:14,:);
+  % label all v4 sets.
   label = zeros(length(x),16);
   for i = 1:length(x)
     [xlabel,~,~] = AssignFeatureLabel(c,x{i});
@@ -29,9 +33,9 @@ function [c,label] = LabelSampleV4Feature(files)
         label(i,xlabel(j) + 2) = x{i}(j,13);
       end
     end
-    idx = label(i,label(i,:)~=0);
     label(i,1) = i;
     label(i,2) = x{i}(1,14);
+    % idx = label(i,label(i,:)~=0);
     % FindV4Feature('draw', files(x{i}(1,14)).v4(idx,:));
     % saveas(gcf, ['temp/test-',num2str(i),'.png']);
     % close(gcf);

@@ -1,10 +1,54 @@
+function [c,l,n,d] = ClusterV4Feature(c, ethzv4, mode)
+  if exist('mode','var') && strcmp(mode,'cluster')
+    [~,l,n,~,d] = Cluster(c, ethzv4);
+    return
+  end
+  x = [];
+  for i = 1:length(ethzv4.sample.index)
+    k = ethzv4.sample.index{i};
+    x = cat(1, x, ethzv4.files(k(1)).v4(k(2:length(k)),1:6));
+  end
+  [c,l1,n,d] = Cluster(c(:,1:6), x);
+  j = 1;
+  for i = 1:length(ethzv4.sample.index)
+    k = ethzv4.sample.index{i};
+    range = j:j+length(k)-2;
+    if exist('mode','var') && (strcmp(mode,'label') || strcmp(mode,'drawlabel'))
+      l1(range) = FeaturePosition(ethzv4.model.label, l1(range));
+    end
+    if exist('mode','var') && (strcmp(mode,'draw') || strcmp(mode,'drawlabel'))
+      v4 = x(range,:);
+      v4(:,9) = l1(range);
+      FindV4Feature('draw', v4);
+      saveas(gcf,['temp/label-',num2str(i),'.png']);
+      close gcf;
+    end
+    l{i} = [k(1), l1(range)'];
+    j = j + length(k) - 1;
+  end
+end
+
+% Get feature position according to feature cluster label. 
+function p = FeaturePosition(label, f)
+  p = f;
+  i = 1;
+  j = 1;
+  while i <= length(f) && j <= length(label)
+    if ismember(f(i), label{j})
+      p(i) = j;
+      i = i + 1;
+    end
+    j = j + 1;
+  end
+end
+
 % Cluster V4 features with k-means.
-%   c: cluster center (only column 1-6 is used);
+%   c: cluster center;
 %   l: data label;
 %   n: number of cluster label;
 %   d: max cluster radius;
 %   md: data distance to cluster center.
-function [c,l,n,d,md] = ClusterV4Feature(c, x)
+function [c,l,n,d,md] = Cluster(c, x)
   x = NormalizeV4(x);
   c = NormalizeV4(c);
   d1 = DiffMatrix(x(:,1:2), c(:,1:2), 2);
