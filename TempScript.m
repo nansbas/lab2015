@@ -1,6 +1,6 @@
-%ethzv4 = [];
+ethzv4 = [];
 [rf,out] = MakeSimpleRF(9,0:5:175,[6,6]);
-for i = 1:5
+for i = 1:12
   for j = 1:length(ethz(i).files)
     fprintf('Run on image %d:%d:%s ... ... ', i, j, ethz(i).files(j).name);
     img = ethz(i).files(j).image;
@@ -15,6 +15,19 @@ for i = 1:5
     rect(:,3:4) = rect(:,3:4) - rect(:,1:2);
     fprintf('OK\n');
   end
+end
+for i=1:12
+  [c,dist,label,maxZero,x,y,s,d,a,n] = LearnV4ShapeModel(ethzv4(i).files);
+  ethzv4(i).cluster.c = c;
+  ethzv4(i).cluster.d = dist;
+  ethzv4(i).model.label = label;
+  ethzv4(i).model.maxZero = maxZero;
+  ethzv4(i).model.x = x;
+  ethzv4(i).model.y = y;
+  ethzv4(i).model.s = s;
+  ethzv4(i).model.d = d;
+  ethzv4(i).model.a = a;
+  ethzv4(i).model.n = n;
 end
 %% Run detection.
 %{
