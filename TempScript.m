@@ -17,8 +17,14 @@ for i = 1:12
     fprintf('OK\n');
   end
 end
+%
+param = {1:6,[1,2,5,6,11,18],[1,2,3,11,15,24],[1,2,5,8,11,19],[1,3,4,6,8,17], ...
+  1:6,[1,2,5,6,11,18],[1,2,3,11,15,24],[1,2,6,7,9,11],[1,2,5,8,11,19],[1,3,5,6,11,14],[1,4,6,12,13,17]};
 for i=1:12
-  [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(ethzv4(i).files);
+  [c,label]=LabelSampleV4Feature(ethzv4(i).files,26,[4,4],1.8);
+  ethzv4(i).initModel = c(param{i}(1:4),:);
+  ethzv4(i).sampleIndex = label(:,[1,2,param{i}(1:4)+2]);
+  [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(ethzv4(i).files, ethzv4(i).initModel, ethzv4(i).sampleIndex);
   ethzv4(i).cluster.c = c;
   ethzv4(i).cluster.d = dist;
   ethzv4(i).model.label = label;
@@ -46,7 +52,7 @@ for i=1:5
       jj = [repmat(i,size(jj,1),1),repmat(j,size(jj,1),1),jj];
     end
     result=[result;jj];
-    fprintf('ok: %d, %d\n', i, j);
+    fprintf('Runcat=%d, ok: %d, %d\n', runCat, i, j);
   end
 end
 ethzv4(runCat).result = result;

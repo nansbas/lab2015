@@ -1,94 +1,87 @@
 % Lable V4 features in positive sample images.
 %   files: struct-array with `v4`, `groundtruth`.
+%   nposition: number of positions.
+%   initModel: initial model from template.
 %   Function returns cluster centers and labels for each groundtruth.
 %   label: each row start with row-index, file-index, followed by V4
-%   feature index corresponding to each label from 1-14. Zero for no
+%   feature index corresponding to each position label. Zero for no
 %   corresponding feature.
-function [c,label] = LabelSampleV4Feature(files)
+function [c,label] = LabelSampleV4Feature(files, nposition, initModel)
   x = NormaliseV4ComputePositionScale(files);
-  % sort v4 sets in ascending order of size.
-  len = [];
+  % cluster and label data.
+  c = ClusterFeatures(initModel, x, nposition, [2,2], 0.4);
+  label = LabelFeatures(c, x, [2,2], 0.4);
+  % draw result.
+  %{
+  nposition = size(c,1);
   for i = 1:length(x)
-    len(i) = size(x{i},1);
+    idx = label(i,3:nposition+2);
+    idx = idx(idx~=0);
+    if isempty(idx), continue; end
+    FindV4Feature('draw', files(x{i}(1,14)).v4(idx,:));
+    saveas(gcf, ['temp/test-',num2str(i),'.png']);
+    close(gcf);
   end
-  [~,idx] = sort(len);
-  for i = 1:length(idx)
-    x1{i} = x{idx(i)};
-  end
-  % run clustering 8 times.
-  c = [];
-  for i = 1:8
-    [c,~,count,~] = ClusterFeatures(c, x1);
-  end
-  % take the biggest 14 clusters.
-  [~,idx] = sort(count, 'descend');
-  c = c(idx,:);
-  c = c(1:14,:);
-  % label all v4 sets.
-  label = zeros(length(x),16);
+  %}
+end
+
+% Label features.
+function f = LabelFeatures(c, x, positionFact, threshold)
+  n = size(c,1);
+  f = zeros(length(x),n+2);
+  f(:,1) = 1:length(x);
   for i = 1:length(x)
-    [xlabel,~,~] = AssignFeatureLabel(c,x{i});
-    for j = 1:length(xlabel)
-      if xlabel(j) ~= 0
-        label(i,xlabel(j) + 2) = x{i}(j,13);
+    f(i,2) = x{i}(1,14);
+    label = AssignFeatureLabel(c, x{i}, positionFact, threshold);
+    for j = 1:length(label)
+      if label(j) ~= 0
+        f(i,label(j)+2) = x{i}(j,13);
       end
     end
-    label(i,1) = i;
-    label(i,2) = x{i}(1,14);
-    % idx = label(i,label(i,:)~=0);
-    % FindV4Feature('draw', files(x{i}(1,14)).v4(idx,:));
-    % saveas(gcf, ['temp/test-',num2str(i),'.png']);
-    % close(gcf);
   end
 end
 
 % Cluster features.
-function [c, label, count, cover] = ClusterFeatures(c, x)
+function c = ClusterFeatures(c, x, nposition, positionFact, threshold)
   n = size(c,1);
-  count = zeros(1,n);
   cx = cell(1,n);
-  cover = [];
   for i = 1:length(x)
-    [xlabel,~,r] = AssignFeatureLabel(c,x{i});
-    for j = 1:length(xlabel)
-      if xlabel(j) ~= 0
-        v4 = x{i}(j,:);
+    [label,~,r] = AssignFeatureLabel(c, x{i}, positionFact, threshold);
+    for j = 1:length(label)
+      if label(j) ~= 0
+        v4 = x{i}(j,1:12);
         if r(j)
           v4(1:4) = v4([3,4,1,2]);
           v4(5:6) = -v4(5:6);
         end
-        cx{xlabel(j)} = cat(1, cx{xlabel(j)}, v4);
-        count(xlabel(j)) = count(xlabel(j)) + 1;
-      else
-        n = n + 1;
-        cx{n} = x{i}(j,:);
-        count(n) = 1;
-        xlabel(j) = n;
-        c = cat(1, c, x{i}(j,:));
+        cx{label(j)} = cat(1, cx{label(j)}, v4);
       end
-      cover(xlabel(j),i) = 1;
     end
-    label{i} = xlabel;
   end
+  count = zeros(1,n);
   for i = 1:n
-    if count(n) < 1, continue; end
-    c(i,:) = mean(cx{i},1);
+    count(i) = size(cx{i},1);
+    if count(i) < 1, continue; end
+    c(i,1:12) = mean(cx{i},1);
   end
+  [~,idx] = sort(count, 'descend');
+  c = c(idx,:);
   c = NormalizeV4(c);
+  c = c(1:min(nposition,n),:);
 end
 
 % Assign features with cluster label.
 % Function returns label (zero for not labeled), distance to cluster
 % center, and whether features are reversed.
-function [xlabel, dist, r] = AssignFeatureLabel(c, x)
+function [xlabel, dist, r] = AssignFeatureLabel(c, x, positionFact, threshold)
   if isempty(c)
     xlabel = zeros(1,size(x,1));
     dist = zeros(1,size(x,1));
     r = zeros(1,size(x,1));
     return
   end
-  d1 = DiffMatrix(x(:,1:2), c(:,1:2), 2);
-  d2 = DiffMatrix(x(:,3:4), c(:,1:2), 2);
+  d1 = DiffMatrix(x(:,1:2), c(:,1:2), [1,1]);
+  d2 = DiffMatrix(x(:,3:4), c(:,1:2), [1,1]);
   da = DiffMatrix(x(:,5), c(:,5), 1);
   db = DiffMatrix(x(:,6), c(:,6), 1);
   dmu = MuDiff(da, db);
@@ -98,7 +91,7 @@ function [xlabel, dist, r] = AssignFeatureLabel(c, x)
   reverse = (d2 < d1);
   dmu(reverse) = dmu2(reverse);
   d1(reverse) = d2(reverse);
-  d = d1/2 + dmu + DiffMatrix(x(:,10:11), c(:,10:11), 2) * 2.3856;
+  d = d1/2 + dmu + DiffMatrix(x(:,10:11), c(:,10:11), positionFact.^2); % 2.3856 = max(d1/2+dmu)/sqrt(2).
   [cidx,xidx] = meshgrid(1:size(c,1),1:size(x,1));
   [~,idx] = sort(d(:));
   cused = zeros(1,size(c,1));
@@ -108,7 +101,7 @@ function [xlabel, dist, r] = AssignFeatureLabel(c, x)
   for i = idx'
     ci = cidx(i);
     xi = xidx(i);
-    if d(xi,ci) > 1, break; end
+    if d(xi,ci) > threshold, break; end
     if cused(ci) == 0 && xlabel(xi) == 0
       cused(ci) = 1;
       xlabel(xi) = ci;
@@ -120,6 +113,7 @@ end
 
 % Extract positive samples.
 % Normalise V4 feature; put position and scale at columns 10:12.
+% Put v4 index and file index at columns 13,14.
 function f = NormaliseV4ComputePositionScale(files)
   n = 1;
   f = {};
@@ -165,13 +159,13 @@ end
 
 % Compute difference matrix of two set of row vectors of specified width.
 function f = DiffMatrix(rows1, rows2, width)
-  if width == 1
-    f = abs(repmat(rows1(:,1),1,size(rows2,1)) - repmat(rows2(:,1)',size(rows1,1),1));
+  if length(width) == 1
+    f = width * abs(repmat(rows1(:,1),1,size(rows2,1)) - repmat(rows2(:,1)',size(rows1,1),1));
   else
     f = zeros(size(rows1,1),size(rows2,1));
-    for i = 1:width
+    for i = 1:length(width)
       d = repmat(rows1(:,i),1,size(rows2,1)) - repmat(rows2(:,i)',size(rows1,1),1);
-      f = f + d.^2;
+      f = f + d.^2 * width(i);
     end
     f = sqrt(f);
   end

@@ -1,13 +1,17 @@
 % Learn V4 Shape Model.
 %   files: struct-array with `v4`, `groundtruth`.
-function [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(files)
+function [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(files, initModel, plabel)
   % label positive samples.
-  fprintf('label sample v4 features ... ... ');
-  [c,plabel] = LabelSampleV4Feature(files);
+  % fprintf('label sample v4 features ... ... ');
+  % [c,plabel] = LabelSampleV4Feature(files, nposition, positionFact, threshold);
+  c = initModel;
   maxZero = max(sum(plabel(:,3:size(plabel,2))==0,2));
-  fprintf('ok\n');
+  % fprintf('ok\n');
   % clustering.
   x = GetAllLabeledFeatures(files, plabel);
+  c1 = ClusterV4Feature(c, x(1:round(size(x,1)/2),:));
+  c2 = ClusterV4Feature(c, x(round(size(x,1)/2):size(x,1),:));
+  c = [c; c1; c2];
   for i = 1:20
     fprintf('clustering ... ... ');
     [c1,l,~,d,~] = ClusterV4Feature(c, x);
@@ -27,7 +31,7 @@ function [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(files)
 end
 
 function [f,ignore] = LearnLabelMatrix(plabel, clabel, sampleIdx, nLabel)
-  f = zeros(nLabel, nLabel+1, nLabel+1);
+  f = zeros(nLabel, 3*nLabel+1, 3*nLabel+1);
   ignore = zeros(nLabel, nLabel+1);
   for i = 1:max(sampleIdx)
     cl = clabel(sampleIdx == i);
@@ -56,11 +60,13 @@ function f = GetAllLabeledFeatures(files, label)
     idx = 1:(lsize - 2);
     v4idx = label(i,3:lsize);
     idx = idx(v4idx ~= 0);
-    v4idx = v4idx(v4idx ~= 0);
-    v4 = files(fidx).v4(v4idx,1:9);
-    v4(:,10) = idx;
-    v4(:,11) = i;
-    f = cat(1, f, v4);
+    if ~isempty(idx)
+      v4idx = v4idx(v4idx ~= 0);
+      v4 = files(fidx).v4(v4idx,1:9);
+      v4(:,10) = idx;
+      v4(:,11) = i;
+      f = cat(1, f, v4);
+    end
   end
 end
 
