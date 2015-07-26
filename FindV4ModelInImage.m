@@ -1,33 +1,54 @@
-function [result,judge] = FindV4ModelInImage(cluster, model, image)
+% Find V4 model in image.
+function [result,judge,maxResult] = FindV4ModelInImage(cluster, model, image)
   [~,label,~,~,dist] = ClusterV4Feature(cluster.c, image.v4);
   for i = 1:length(cluster.d)
     label(label == i & dist > cluster.d(i)) = 0;
   end
   [x,y,s,d,a] = ComputeV4PositionMatrix(image.v4);
   result = {};
-  current = zeros(3,size(model.label,1)) - 1;
+  init = length(label) + 1;
+  current = zeros(3,size(model.label,1));
+  current(1,:) = init;
   i = 1;
+  maxResult = 0;
   while i > 0
+    % if every position is configured, yield new result.
     if i > size(current,2)
+      if length(result) > 2000, break; end
       result = UpdateResult(result, current);
+      if length(result) > maxResult, maxResult = length(result); end
       i = i - 1;
       continue;
     end
-    current(1,i) = current(1,i) + 1;
+    % if already passes empty configuration, backtrack
+    if current(1,i) == 0
+      current(1,i) = init;
+      i = i - 1;
+      continue;
+    end
+    % prepare next value for this current position.
+    if current(1,i) == init
+      current(1,i) = 1;
+    elseif current(1,i) < length(label) && current(1,i) > 0
+      current(1,i) = current(1,i) + 1;
+    else
+      current(1,i) = 0;
+    end
+    % get configuration of previous position.
     prev = 0;
     if i > 1, prev = current(2,i-1); end
-    if current(1,i) == 0
-      if model.ignore(i, LastNonZero(current(1,1:i-1))+1) ...
-        && sum(current(1,1:i-1)==0) < model.maxZero ...
-        && model.label(i, prev+1, current(1,i)+1)
-        current(2,i) = 0;
-        current(3,i) = 0;
-        i = i + 1;
-      end
-    elseif current(1,i) > length(label)
-      current(1,i) = -1;
-      i = i - 1;
-    elseif model.label(i, prev+1, label(current(1,i))+1)
+    % test if can set empty.
+    if current(1,i) == 0 ...
+      && model.ignore(i, LastNonZero(current(1,1:i-1))+1) ...
+      && sum(current(1,1:i-1)==0) < model.maxZero ...
+      && model.label(i, prev+1, 1)
+      current(2,i) = 0;
+      current(3,i) = 0;
+      i = i + 1;
+      continue;
+    end
+    % otherwise test if current configuration is OK.
+    if current(1,i) > 0 && model.label(i, prev+1, label(current(1,i))+1)
       epsilon = 0;
       ok = 1;
       i1 = current(1,i);
@@ -42,7 +63,7 @@ function [result,judge] = FindV4ModelInImage(cluster, model, image)
           || x(j1,i1) > model.x(j,i,3) + epsilon * model.x(j,i,2) || x(j1,i1) < model.x(j,i,4) - epsilon * model.x(j,i,2) ...
           || y(j1,i1) > model.y(j,i,3) + epsilon * model.y(j,i,2) || y(j1,i1) < model.y(j,i,4) - epsilon * model.y(j,i,2) ...
           || s(j1,i1) > model.s(j,i,3) + epsilon * model.s(j,i,2) || s(j1,i1) < model.s(j,i,4) - epsilon * model.s(j,i,2) ...
-          || d(j1,i1) > model.d(j,i,3) + epsilon * model.d(j,i,2) || d(j1,i1) < model.d(j,i,4) - epsilon * model.d(j,i,2) ...
+          || d(j1,i1) > model.d(j,i,3) + epsilon * model.d(j,i,2) || d(j1,i1) < model.d(j,i,4) - epsilon * model.d(j,i,2) 
           ok = 0;
           break;
         end
@@ -78,6 +99,7 @@ function f = JudgeResult(result, v4, groundtruth)
   for i = 1:length(result)
     r = result{i};
     r = r(:, r(1,:)~=0);
+    if isempty(r), continue; end
     p = [v4(r(1,:),1:2);v4(r(1,:),3:4);v4(r(1,:),10:11)];
     rect = [min(p(:,1)),min(p(:,2)),max(p(:,1)),max(p(:,2))];
     [overlap,idx] = RectOverlap(rect, groundtruth);
@@ -90,7 +112,7 @@ function f = JudgeResult(result, v4, groundtruth)
         ignoreThis = 1;
         break;
       end
-      if f(j,8) == idx
+      if f(j,8) == idx && overlap > 0
         if overlap > f(j,7)
           f(j,:) = [rect, size(r,2), mean(r(3,:)), overlap, idx];
         end

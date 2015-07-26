@@ -18,13 +18,8 @@ for i = 1:12
   end
 end
 %
-param = {1:6,[1,2,5,6,11,18],[1,2,3,11,15,24],[1,2,5,8,11,19],[1,3,4,6,8,17], ...
-  1:6,[1,2,5,6,11,18],[1,2,3,11,15,24],[1,2,6,7,9,11],[1,2,5,8,11,19],[1,3,5,6,11,14],[1,4,6,12,13,17]};
 for i=1:12
-  [c,label]=LabelSampleV4Feature(ethzv4(i).files,26,[4,4],1.8);
-  ethzv4(i).initModel = c(param{i}(1:4),:);
-  ethzv4(i).sampleIndex = label(:,[1,2,param{i}(1:4)+2]);
-  [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(ethzv4(i).files, ethzv4(i).initModel, ethzv4(i).sampleIndex);
+  [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(ethzv4(i).files, ethzv4(i).model.init, ethzv4(i).model.sampleIndex);
   ethzv4(i).cluster.c = c;
   ethzv4(i).cluster.d = dist;
   ethzv4(i).model.label = label;
@@ -40,11 +35,11 @@ end
 %}
 %% Run detection.
 %
-for runCat = 1:5
+for runCat = 3
 result = [];
-for i=1:5
+  for i=1:5
   for j=1:length(ethzv4(i).files)
-    [r,jj]=FindV4ModelInImage(ethzv4(runCat).cluster,ethzv4(runCat).model,ethzv4(i).files(j));
+    [r,jj,maxr]=FindV4ModelInImage(ethzv4(runCat).cluster,ethzv4(runCat).model,ethzv4(i).files(j));
     if i~=runCat && ~isempty(jj)
       jj(:,7) = 0;
     end
@@ -52,9 +47,9 @@ for i=1:5
       jj = [repmat(i,size(jj,1),1),repmat(j,size(jj,1),1),jj];
     end
     result=[result;jj];
-    fprintf('Runcat=%d, ok: %d, %d\n', runCat, i, j);
+    fprintf('Runcat=%d, ok: %d, %d, max=%d\n', runCat, i, j, maxr);
   end
-end
+  end
 ethzv4(runCat).result = result;
 allpos = [44,55,91,66,33];
 [~,idx] = sort(result(:,8)/max(result(:,8))-result(:,7));
