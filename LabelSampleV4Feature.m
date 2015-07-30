@@ -7,10 +7,10 @@
 %   feature index corresponding to each position label. Zero for no
 %   corresponding feature.
 function [c,label] = LabelSampleV4Feature(files, nposition, initModel)
-  x = NormaliseV4ComputePositionScale(files);
+  x = ExtractNormalisedV4WithMask(files);
   % cluster and label data.
-  c = ClusterFeatures(initModel, x, nposition, [2,2], 0.4);
-  label = LabelFeatures(c, x, [2,2], 0.4);
+  c = ClusterFeatures(initModel, x, nposition, [6,6], 1);
+  label = LabelFeatures(c, x, [6,6], 2.5);
   % draw result.
   %{
   nposition = size(c,1);
@@ -48,13 +48,16 @@ function c = ClusterFeatures(c, x, nposition, positionFact, threshold)
   for i = 1:length(x)
     [label,~,r] = AssignFeatureLabel(c, x{i}, positionFact, threshold);
     for j = 1:length(label)
+      v4 = x{i}(j,1:12);
       if label(j) ~= 0
-        v4 = x{i}(j,1:12);
         if r(j)
           v4(1:4) = v4([3,4,1,2]);
           v4(5:6) = -v4(5:6);
         end
         cx{label(j)} = cat(1, cx{label(j)}, v4);
+      else
+        n = n + 1;
+        cx{n} = v4;
       end
     end
   end
@@ -111,10 +114,10 @@ function [xlabel, dist, r] = AssignFeatureLabel(c, x, positionFact, threshold)
   end
 end
 
-% Extract positive samples.
+% Extract positive samples with mask.
 % Normalise V4 feature; put position and scale at columns 10:12.
 % Put v4 index and file index at columns 13,14.
-function f = NormaliseV4ComputePositionScale(files)
+function f = ExtractNormalisedV4WithMask(files)
   n = 1;
   f = {};
   for i = 1:length(files)
@@ -122,12 +125,25 @@ function f = NormaliseV4ComputePositionScale(files)
     v4(:,10:12) = ComputePeakPointAndScale(v4);
     v4(:,13) = 1:size(v4,1);
     v4(:,14) = i;
+    if isfield(files(i),'mask')
+      mask = files(i).mask;
+      [x,y] = meshgrid(1:size(mask,2),1:size(mask,1));
+      mask = [x(mask),y(mask)];
+    end
     for j = 1:size(files(i).groundtruth,1)
       gt = files(i).groundtruth(j,:);
       ingt = (v4(:,1) <= gt(3) & v4(:,1) >= gt(1) & v4(:,2) <= gt(4) & v4(:,2) >= gt(2)) ...
         | (v4(:,3) <= gt(3) & v4(:,3) >= gt(1) & v4(:,4) <= gt(4) & v4(:,4) >= gt(2)) ...
         | (v4(:,10) <= gt(3) & v4(:,10) >= gt(1) & v4(:,11) <= gt(4) & v4(:,11) >= gt(2));
       v4gt = v4(ingt,:);
+      if isfield(files(i),'mask')
+        d = zeros(size(v4gt,1),3);
+        d(:,1) = min(DiffMatrix(v4gt(:,1:2), mask, [1,1]),[],2);
+        d(:,2) = min(DiffMatrix(v4gt(:,3:4), mask, [1,1]),[],2);
+        d(:,3) = min(DiffMatrix(v4gt(:,10:11), mask, [1,1]),[],2);
+        d = max(d,[],2);
+        v4gt = v4gt(d<8,:);
+      end
       v4gt = NormalizeV4(v4gt);
       v4gt(:,10:11) = (v4gt(:,10:11) - repmat(gt(1:2), size(v4gt,1),1)) * [1/(gt(3)-gt(1)),0;0,1/(gt(4)-gt(2))];
       v4gt(:,12) = v4gt(:,12) / sqrt((gt(4)-gt(2))*(gt(3)-gt(1)));

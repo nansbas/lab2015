@@ -1,24 +1,61 @@
+%% get outline masks.
+%{
+for i = 1:5
+  folder = ['saved-result/dataset/ETHZShapeClasses-V1.2/',ethzdata(i).name,'/'];
+  n = 0;
+  for j = 1:length(ethzdata(i).files)
+    m0 = dir([folder,ethzdata(i).files(j).name,'_',lower(ethzdata(i).name),'_outlines.pgm']);
+    m01 = dir([folder,ethzdata(i).files(j).name,'_half_',lower(ethzdata(i).name),'_outlines.pgm']);
+    m1 = dir([folder,ethzdata(i).files(j).name,'.mask.*.png']);
+    m2 = dir([folder,ethzdata(i).files(j).name,'_big.mask.*.png']);
+    m3 = dir([folder,ethzdata(i).files(j).name,'_small.mask.*.png']);
+    m4 = dir([folder,ethzdata(i).files(j).name,'_half.mask.*.png']);
+    masks = [m0;m01;m1;m2;m3;m4];
+    n = n + length(masks);
+    imgall = [];
+    for k = 1:length(masks)
+      img = imread([folder,masks(k).name]);
+      img = img~=median(img(:));
+      if isempty(imgall)
+        imgall = img(:,:,1);
+      else
+        imgall = imgall|img(:,:,1);
+      end
+    end
+    fprintf('%d:run %d,%d: %s\n', n, i, j, ethzdata(i).files(j).name);
+    if length(masks) ~= size(ethzdata(i).files(j).groundtruth,1)
+      %fprintf('--------!!!======== WARN: not equal, masks=%d, groundtruth=%d\n', length(masks),size(ethzdata(i).files(j).groundtruth,1));
+    end
+    if isempty(imgall)
+      fprintf('--------!!!======== WARN: empty mask\n');
+    else
+      ethzdata(i).files(j).mask = imgall;
+      ethzv4(i).files(j).mask = imgall;
+    end
+  end
+end
+%}
+%% read data from ethz-data.
 %{
 ethzv4 = [];
-[rf,out] = MakeSimpleRF(9,0:5:175,[6,6]);
 for i = 1:12
-  for j = 1:length(ethz(i).files)
-    fprintf('Run on image %d:%d:%s ... ... ', i, j, ethz(i).files(j).name);
-    img = ethz(i).files(j).image;
-    [out,ori,ridge] = SimpleCell(img, rf);
-    [map,lines] = FindLine(ridge, ori, 0.8, 20);
-    f = FindV4Feature(lines, 0.05, 20);
+  for j = 1:length(ethzdata(i).files)
+    fprintf('Run on image %d:%d:%s ... ... ', i, j, ethzdata(i).files(j).name);
+    img = double(ethzdata(i).files(j).edge);
+    [map,lines] = FindLine(img, img, 0.1, 20);
+    f = FindV4Feature(lines, 1.6, 20);
     ethzv4(i).files(j).v4 = f;
-    ethzv4(i).files(j).lines = lines;
-    rect = ethz(i).files(j).groundtruth;
-    ethzv4(i).files(j).groundtruth = rect;
-    ethzv4(i).files(j).name = ethz(i).files(j).name;
-    rect(:,3:4) = rect(:,3:4) - rect(:,1:2);
+    ethzv4(i).files(j).groundtruth = ethzdata(i).files(j).groundtruth;
+    ethzv4(i).files(j).name = ethzdata(i).files(j).name;
+    saveas(gcf, ['temp/newv4-',num2str(i),'-',num2str(j),'.jpg']);
+    close gcf;
     fprintf('OK\n');
   end
 end
-%
-for i=1:12
+%}
+%% learn shape model.
+%{
+for i=1:5
   [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(ethzv4(i).files, ethzv4(i).model.init, ethzv4(i).model.sampleIndex);
   ethzv4(i).cluster.c = c;
   ethzv4(i).cluster.d = dist;
@@ -35,9 +72,9 @@ end
 %}
 %% Run detection.
 %
-for runCat = 3
+for runCat = [1,2,5,4,3]
 result = [];
-  for i=1:5
+for i=1:5
   for j=1:length(ethzv4(i).files)
     [r,jj,maxr]=FindV4ModelInImage(ethzv4(runCat).cluster,ethzv4(runCat).model,ethzv4(i).files(j));
     if i~=runCat && ~isempty(jj)
@@ -49,7 +86,7 @@ result = [];
     result=[result;jj];
     fprintf('Runcat=%d, ok: %d, %d, max=%d\n', runCat, i, j, maxr);
   end
-  end
+end
 ethzv4(runCat).result = result;
 allpos = [44,55,91,66,33];
 [~,idx] = sort(result(:,8)/max(result(:,8))-result(:,7));

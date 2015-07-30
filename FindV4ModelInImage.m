@@ -14,7 +14,7 @@ function [result,judge,maxResult] = FindV4ModelInImage(cluster, model, image)
   while i > 0
     % if every position is configured, yield new result.
     if i > size(current,2)
-      if length(result) > 2000, break; end
+      if length(result) > 3000, break; end
       result = UpdateResult(result, current);
       if length(result) > maxResult, maxResult = length(result); end
       i = i - 1;

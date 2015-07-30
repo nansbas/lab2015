@@ -53,7 +53,7 @@ function result = DoLine(line, threshold, minLength)
       ySign = sign(sum(y));
       b = lsqnonneg(A, y * ySign);
       b = b * ySign;
-      s = sum((A*b-y).^2);
+      s = mean(abs(A*b-y))*sum((p-q).^2)/size(xy,1); % sum((A*b-y).^2);
       result = [result; p,q,b',i,j,j-i+1,s];
     end
   end
