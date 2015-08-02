@@ -1,6 +1,6 @@
 function RunParallel(ethzv4)
   pool = parpool(4);
-  for runCat = 4
+  for runCat = 3
     r = {};
     for testCat = 1:5
       r1 = {};

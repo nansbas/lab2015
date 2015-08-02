@@ -55,7 +55,7 @@ end
 %}
 %% learn shape model.
 %
-for i=4
+for i=3
   [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(ethzv4(i).files, ethzv4(i).model.init, ethzv4(i).model.sampleIndex);
   ethzv4(i).cluster.c = c;
   ethzv4(i).cluster.d = dist;

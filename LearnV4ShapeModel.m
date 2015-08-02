@@ -11,7 +11,8 @@ function [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(files, in
   x = GetAllLabeledFeatures(files, plabel);
   c1 = ClusterV4Feature(c, x(1:round(size(x,1)/2),:));
   c2 = ClusterV4Feature(c, x(round(size(x,1)/2):size(x,1),:));
-  c = [c; c1; c2];
+  c3 = ClusterV4Feature(c, x);
+  c = [c; c1; c2; c3];
   for i = 1:20
     fprintf('clustering ... ... ');
     [c1,l,~,d,~] = ClusterV4Feature(c, x);
