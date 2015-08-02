@@ -11,12 +11,13 @@ function RunParallel(ethzv4)
     end
     result = vertcat(r{:});
     ethzv4(runCat).result = result;
+    result = ethzv4(runCat).result;
     allpos = [44,55,91,66,33];
     [~,idx] = sort(result(:,8)/max(result(:,8))-result(:,7));
     r = result(idx,:);
     for i = 1:size(r,1)
-      r(i,1) = sum(r(1:i,9)<=0.4)/255;
-      r(i,2) = sum(r(1:i,9)>0.4)/allpos(runCat);
+      r(i,1) = sum(r(1:i,9)<=0.1)/255;
+      r(i,2) = sum(r(1:i,9)>0.1)/allpos(runCat);
     end
     [~,idx] = unique(r(:,1));
     idx2 = 1;

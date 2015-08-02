@@ -10,9 +10,9 @@ function [c,label] = LabelSampleV4Feature(files, nposition, initModel)
   x = ExtractNormalisedV4WithMask(files);
   % cluster and label data.
   c = ClusterFeatures(initModel, x, nposition, [6,6], 1);
-  label = LabelFeatures(c, x, [6,6], 2.5);
+  label = LabelFeatures(c, x, [6,6], 1);
   % draw result.
-  %{
+  %
   nposition = size(c,1);
   for i = 1:length(x)
     idx = label(i,3:nposition+2);
