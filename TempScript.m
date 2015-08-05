@@ -1,3 +1,24 @@
+%% load horse-data
+%
+%[rf,out]=MakeSimpleRF(9,0:5:175,[6,6]);
+for i=1:length(horsedata.posFiles)
+  close all;
+  FindV4Feature('drawcolor',posFiles(i).v4,[1,1,1]/4);
+  pause
+end
+%}
+%% draw ethz fppi curve
+%{
+hold on
+h1 = plot(r(:,1),r(:,2),'LineWidth',3,'Color',[0,114,189]/255);
+h2 = plot(0,0,'-','LineWidth',3,'Color',[0,0.5,0]);
+h3 = plot(0,0,'--','LineWidth',2,'Color',[0,0.5,0]);
+h4 = plot(0,0,'-','LineWidth',3,'Color',[1,0,0]);
+h5 = plot(0,0,'--','LineWidth',2,'Color',[1,0,0]);
+h6 = plot(0,0,'--','LineWidth',3,'Color',[0,0,1]);
+legend([h1,h2,h3,h4,h5,h6],{'Our model','Ferrari et al. PAMI 08(20% IoU)','Ferrari et al. PAMI 08(PASCAL)','Full system(20% IoU)','Full system(PASCAL)','Hough only (PASCAL)'});
+hold off
+%}
 %% get outline masks.
 %{
 for i = 1:5
@@ -54,7 +75,7 @@ for i = 1:12
 end
 %}
 %% learn shape model.
-%
+%{
 for i=3
   [c,dist,label,maxZero,x,y,s,d,a,n,ignore] = LearnV4ShapeModel(ethzv4(i).files, ethzv4(i).model.init, ethzv4(i).model.sampleIndex);
   ethzv4(i).cluster.c = c;
