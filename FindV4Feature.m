@@ -34,46 +34,79 @@ function f = FindV4Feature(lines, threshold, minLength)
   end
 end
 
+% Fit V4 feature.
+%   It returns empty matrix if no feature fits.
+%   The feature is in [x1,y1,x2,y2,a,b].
+function f = FitV4(line, threshold)
+  f = [];
+  xy = line(:,1:2);
+  len = size(xy,1);
+  p = xy(1,1:2);
+  q = xy(len,1:2);
+  t = [p(1),p(2),1,0;p(2),-p(1),0,1;q(1),q(2),1,0;q(2),-q(1),0,1]^(-1)*[-1;0;1;0];
+  t = [t(1),-t(2);t(2),t(1);t(3),t(4)];
+  xy = [xy,ones(len,1)]*t;
+  x = xy(:,1);
+  y = xy(:,2);
+  if sum(x<-1)>1 || sum(x>1)>1
+    return
+  end
+  A = [x.^2-abs(x)*2+1,1-x.^2];
+  ySign = sign(sum(y));
+  b = lsqnonneg(A, y * ySign);
+  b = b * ySign;
+  s = mean(abs(A*b-y))*sum((p-q).^2)/size(xy,1); % sum((A*b-y).^2);
+  if b(1)*b(2) >= 0 && s <= threshold
+    f = [p,q,b'];
+  end
+end
+
 % Find V4 features on a single line.
 function result = DoLine(line, threshold, minLength)
   result = [];
   for i = 1:5:size(line,1)
     for j = (i+minLength):5:size(line,1)
-      p = line(i,1:2);
-      q = line(j,1:2);
-      t = [p(1),p(2),1,0;p(2),-p(1),0,1;q(1),q(2),1,0;q(2),-q(1),0,1]^(-1)*[-1;0;1;0];
-      t = [t(1),-t(2);t(2),t(1);t(3),t(4)];
-      xy = [line(i:j,1:2),ones(j-i+1,1)]*t;
-      x = xy(:,1);
-      y = xy(:,2);
-      if sum(x<-1)>1 || sum(x>1)>1
-        continue
+      f = FitV4(line(i:j,1:2), threshold);
+      if ~isempty(f)
+        result = cat(1,result,[f,i,j,j-i+1]);
       end
-      A = [x.^2-abs(x)*2+1,1-x.^2];
-      ySign = sign(sum(y));
-      b = lsqnonneg(A, y * ySign);
-      b = b * ySign;
-      s = mean(abs(A*b-y))*sum((p-q).^2)/size(xy,1); % sum((A*b-y).^2);
-      result = [result; p,q,b',i,j,j-i+1,s];
     end
   end
+  key = [];
+  nonkey = [];
   if ~isempty(result)
-    result = result(result(:,10)<=threshold & (result(:,5).*result(:,6)>=0),:);
-    [temp,idx] = sort(result(:,9),'descend');
+    [~,idx] = sort(result(:,9),'descend');
     cover = zeros(1,size(line,1));
-    temp = [];
     for i = idx'
-      if mean(cover(result(i,7):result(i,8))) > 0.75
-        continue
+      if mean(cover(result(i,7):result(i,8))) <= 0.05
+        key = cat(1,key,result(i,:));
+        cover(result(i,7):result(i,8)) = 1;
+      else
+        nonkey = cat(1,nonkey,result(i,:));
       end
-      temp = [temp; result(i,:)];
-      cover(result(i,7):result(i,8)) = 1;
     end
-    result = temp;
-    if ~isempty(result)
-      [temp,idx] = sort(result(:,7));
-      result = result(idx,:);
+  end
+  result = [];
+  if ~isempty(key) && ~isempty(nonkey)
+    [~,idx] = sort(key(:,7));
+    key = key(idx,:);
+    for i = 1:(size(key,1)-1)
+      u = round(mean(key(i,7:8)));
+      v = round(mean(key(i+1,7:8)));
+      m = round(mean([key(i,8),key(i+1,7)]));
+      r = max(abs(m-u),abs(m-v));
+      rr = (m - nonkey(:,7)) ./ (nonkey(:,8) - m);
+      fillgap = nonkey(nonkey(:,7)>=m-r & nonkey(:,8)<=m+r & nonkey(:,7)<m & nonkey(:,8)>m & rr>=1/3 & rr<=3,:);
+      if ~isempty(fillgap)
+        [~,j] = max(fillgap(:,9));
+        result = cat(1,result,fillgap(j,:));
+      end
     end
+  end
+  result = [result;key];
+  if ~isempty(result) 
+    [~,idx] = sort(result(:,7));
+    result = result(idx,:);
   end
 end
 
