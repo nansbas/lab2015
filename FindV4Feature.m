@@ -30,6 +30,7 @@ function f = FindV4Feature(lines, threshold, minLength)
         f = [f; result(:,1:9)];
       end
     end
+    f = [f; FillGap(lines, f, minLength/2, threshold)];
     DrawResult(f);
   end
 end
@@ -61,8 +62,40 @@ function f = FitV4(line, threshold)
   end
 end
 
+% Find gap-filling features.
+function f = FillGap(lines, v4, maxGap, threshold)
+  f = [];
+  for i = 2:size(v4,1)
+    for j = 1:(i-1)
+      if i == j || (v4(i,9)==v4(j,9) && abs(i-j)<=3), continue; end
+      line1 = lines{v4(i,9)};
+      line2 = lines{v4(j,9)};
+      idx1 = [v4(i,7:8),round(mean(v4(i,7:8))),round(mean(v4(i,7:8)));
+        round(mean(v4(i,7:8))),round(mean(v4(i,7:8))),v4(i,7:8)];
+      idx2 = [v4(j,7:8),round(mean(v4(j,7:8))),round(mean(v4(j,7:8)));
+        round(mean(v4(j,7:8))),round(mean(v4(j,7:8))),v4(j,7:8)];
+      for m = 1:4
+        for n = 1:4
+          i1 = idx1(1,m);
+          j1 = idx1(2,m);
+          i2 = idx2(1,n);
+          j2 = idx2(2,n);
+          if sum((line1(i1,1:2)-line2(i2,1:2)).^2) > maxGap*maxGap, continue; end
+          if i1 >= j1, i1 = (j1:i1); else i1 = (j1:-1:i1); end
+          if i2 <= j2, i2 = (i2:j2); else i2 = (i2:-1:j2); end
+          f = cat(1,f,FitV4([line1(i1,1:2);line2(i2,1:2)], threshold));
+        end
+      end
+    end
+  end
+  if ~isempty(f)
+    f(:,7:9) = 0;
+  end
+end
+
 % Find V4 features on a single line.
 function result = DoLine(line, threshold, minLength)
+  % Get all features in steps of 5.
   result = [];
   for i = 1:5:size(line,1)
     for j = (i+minLength):5:size(line,1)
@@ -72,6 +105,7 @@ function result = DoLine(line, threshold, minLength)
       end
     end
   end
+  % Choose non-overlapping longest features as keys.
   key = [];
   nonkey = [];
   if ~isempty(result)
@@ -86,6 +120,7 @@ function result = DoLine(line, threshold, minLength)
       end
     end
   end
+  % Find gap-filling features in non-keys.
   result = [];
   if ~isempty(key) && ~isempty(nonkey)
     [~,idx] = sort(key(:,7));
@@ -95,14 +130,18 @@ function result = DoLine(line, threshold, minLength)
       v = round(mean(key(i+1,7:8)));
       m = round(mean([key(i,8),key(i+1,7)]));
       r = max(abs(m-u),abs(m-v));
-      rr = (m - nonkey(:,7)) ./ (nonkey(:,8) - m);
-      fillgap = nonkey(nonkey(:,7)>=m-r & nonkey(:,8)<=m+r & nonkey(:,7)<m & nonkey(:,8)>m & rr>=1/3 & rr<=3,:);
+      r2 = min(abs(key(i,7)-key(i,8)),abs(key(i+1,7)-key(i+1,8)))/6 ...
+        + max(0,key(i+1,7)-key(i,8))/2;
+      m2 = mean(nonkey(:,7:8),2);
+      fillgap = nonkey(nonkey(:,7)>=m-r & nonkey(:,8)<=m+r ...
+        & nonkey(:,7)<m & nonkey(:,8)>m & m2<=m+r2 & m2>=m-r2,:);
       if ~isempty(fillgap)
         [~,j] = max(fillgap(:,9));
         result = cat(1,result,fillgap(j,:));
       end
     end
   end
+  % Sort features.
   result = [result;key];
   if ~isempty(result) 
     [~,idx] = sort(result(:,7));
