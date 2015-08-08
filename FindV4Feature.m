@@ -27,10 +27,13 @@ function f = FindV4Feature(lines, threshold, minLength)
       result = DoLine(lines{i}, threshold, minLength);
       if ~isempty(result)
         result(:,9) = i;
-        f = [f; result(:,1:9)];
+        f = cat(1,f,result(:,1:9));
       end
     end
-    f = [f; FillGap(lines, f, minLength/2, threshold)];
+    if ~isempty(f)
+      f(:,10:12) = 0;
+    end
+    f = [f;FillGap(lines, f, minLength/2, threshold)];
     DrawResult(f);
   end
 end
@@ -75,21 +78,21 @@ function f = FillGap(lines, v4, maxGap, threshold)
       idx2 = [v4(j,7:8),round(mean(v4(j,7:8))),round(mean(v4(j,7:8)));
         round(mean(v4(j,7:8))),round(mean(v4(j,7:8))),v4(j,7:8)];
       for m = 1:4
-        for n = 1:4
-          i1 = idx1(1,m);
-          j1 = idx1(2,m);
+        i1 = idx1(1,m);
+        j1 = idx1(2,m);
+        for n = 1:4  
           i2 = idx2(1,n);
           j2 = idx2(2,n);
           if sum((line1(i1,1:2)-line2(i2,1:2)).^2) > maxGap*maxGap, continue; end
-          if i1 >= j1, i1 = (j1:i1); else i1 = (j1:-1:i1); end
-          if i2 <= j2, i2 = (i2:j2); else i2 = (i2:-1:j2); end
-          f = cat(1,f,FitV4([line1(i1,1:2);line2(i2,1:2)], threshold));
+          if i1 >= j1, r1 = (j1:i1); else r1 = (j1:-1:i1); end
+          if i2 <= j2, r2 = (i2:j2); else r2 = (i2:-1:j2); end
+          someF = FitV4([line1(r1,1:2);line2(r2,1:2)], threshold);
+          if ~isempty(someF)
+            f = cat(1,f,[someF,j1,i1,i,i2,j2,j]);
+          end
         end
       end
     end
-  end
-  if ~isempty(f)
-    f(:,7:9) = 0;
   end
 end
 
@@ -141,8 +144,27 @@ function result = DoLine(line, threshold, minLength)
       end
     end
   end
-  % Sort features.
   result = [result;key];
+  % Remove redundant features.
+  covers = zeros(1,size(result,1));
+  covered = zeros(1,size(result,1));
+  for i = 1:size(result,1)
+    for j = 1:size(result,1)
+      if i == j, continue; end
+      li = result(i,8) - result(i,7) + 1;
+      lj = result(j,8) - result(j,7) + 1;
+      if li > lj, continue; end
+      b1 = max(result(i,7),result(j,7));
+      b2 = min(result(i,8),result(j,8));
+      overlap = max(0,b2-b1+1);
+      if overlap/li > 0.75
+        covers(j) = 1;
+        covered(i) = 1;
+      end
+    end
+  end
+  result = result((~covered)|covers,:);
+  % Sort features.
   if ~isempty(result) 
     [~,idx] = sort(result(:,7));
     result = result(idx,:);
