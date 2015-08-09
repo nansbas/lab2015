@@ -30,9 +30,6 @@ function f = FindV4Feature(lines, threshold, minLength)
         f = cat(1,f,result(:,1:9));
       end
     end
-    if ~isempty(f)
-      f(:,10:12) = 0;
-    end
     f = [f;FillGap(lines, f, minLength/2, threshold)];
     DrawResult(f);
   end
@@ -93,6 +90,37 @@ function f = FillGap(lines, v4, maxGap, threshold)
         end
       end
     end
+  end
+  % Remove redundancy.
+  if ~isempty(v4), v4(:,10:12) = 0; end
+  v4 = [f;v4];
+  v4(:,7:8) = sort(v4(:,7:8),2);
+  v4(:,10:11) = sort(v4(:,10:11),2);
+  len = v4(:,[7,8,10,11])*[-1;1;-1;1]+2;
+  covered = zeros(1,size(f,1));
+  covers = zeros(1,size(f,1));
+  for i = 1:size(f,1)
+    for j = 1:size(v4,1)
+      if i == j, continue; end
+      if len(i) >= len(j), continue; end
+      overlap = Overlap(v4(i,7:9),v4(j,7:9)) + Overlap(v4(i,7:9),v4(j,10:12)) ...
+        + Overlap(v4(i,10:12),v4(j,7:9)) + Overlap(v4(i,10:12),v4(j,10:12));
+      if overlap/len(i) > 0.75
+        covered(i) = 1;
+        if j <= size(f,1), covers(j) = 1; end
+      end
+    end
+  end
+  f = f((~covered)|covers,:);
+  f = f(:,1:9);
+  f(:,7:9) = 0;
+end
+
+% Compute overlap.
+function f = Overlap(seg1, seg2)
+  f = 0;
+  if seg1(3) == seg2(3)
+    f = max(0,min(seg1(2),seg2(2))-max(seg1(1),seg2(1))+1);
   end
 end
 
