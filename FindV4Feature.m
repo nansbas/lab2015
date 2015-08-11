@@ -30,7 +30,6 @@ function f = FindV4Feature(lines, threshold, minLength)
         f = cat(1,f,result(:,1:9));
       end
     end
-    f = [f;FillGap(lines, f, minLength/2, threshold)];
     DrawResult(f);
   end
 end
@@ -52,75 +51,14 @@ function f = FitV4(line, threshold)
   if sum(x<-1)>1 || sum(x>1)>1
     return
   end
+  w = conv(diff(x), [1,1]/2);
   A = [x.^2-abs(x)*2+1,1-x.^2];
   ySign = sign(sum(y));
-  b = lsqnonneg(A, y * ySign);
+  b = lsqnonneg(diag(w)*A, (y .* w) * ySign);
   b = b * ySign;
-  s = mean(abs(A*b-y))*sum((p-q).^2)/size(xy,1); % sum((A*b-y).^2);
+  s = sum(abs(A*b-y).*w)*sum((p-q).^2)/size(xy,1); % sum((A*b-y).^2);
   if b(1)*b(2) >= 0 && s <= threshold
     f = [p,q,b'];
-  end
-end
-
-% Find gap-filling features.
-function f = FillGap(lines, v4, maxGap, threshold)
-  f = [];
-  for i = 2:size(v4,1)
-    for j = 1:(i-1)
-      if i == j || (v4(i,9)==v4(j,9) && abs(i-j)<=3), continue; end
-      line1 = lines{v4(i,9)};
-      line2 = lines{v4(j,9)};
-      idx1 = [v4(i,7:8),round(mean(v4(i,7:8))),round(mean(v4(i,7:8)));
-        round(mean(v4(i,7:8))),round(mean(v4(i,7:8))),v4(i,7:8)];
-      idx2 = [v4(j,7:8),round(mean(v4(j,7:8))),round(mean(v4(j,7:8)));
-        round(mean(v4(j,7:8))),round(mean(v4(j,7:8))),v4(j,7:8)];
-      for m = 1:4
-        i1 = idx1(1,m);
-        j1 = idx1(2,m);
-        for n = 1:4  
-          i2 = idx2(1,n);
-          j2 = idx2(2,n);
-          if sum((line1(i1,1:2)-line2(i2,1:2)).^2) > maxGap*maxGap, continue; end
-          if i1 >= j1, r1 = (j1:i1); else r1 = (j1:-1:i1); end
-          if i2 <= j2, r2 = (i2:j2); else r2 = (i2:-1:j2); end
-          someF = FitV4([line1(r1,1:2);line2(r2,1:2)], threshold);
-          if ~isempty(someF)
-            f = cat(1,f,[someF,j1,i1,i,i2,j2,j]);
-          end
-        end
-      end
-    end
-  end
-  % Remove redundancy.
-  if ~isempty(v4), v4(:,10:12) = 0; end
-  v4 = [f;v4];
-  v4(:,7:8) = sort(v4(:,7:8),2);
-  v4(:,10:11) = sort(v4(:,10:11),2);
-  len = v4(:,[7,8,10,11])*[-1;1;-1;1]+2;
-  covered = zeros(1,size(f,1));
-  covers = zeros(1,size(f,1));
-  for i = 1:size(f,1)
-    for j = 1:size(v4,1)
-      if i == j, continue; end
-      if len(i) >= len(j), continue; end
-      overlap = Overlap(v4(i,7:9),v4(j,7:9)) + Overlap(v4(i,7:9),v4(j,10:12)) ...
-        + Overlap(v4(i,10:12),v4(j,7:9)) + Overlap(v4(i,10:12),v4(j,10:12));
-      if overlap/len(i) > 0.75
-        covered(i) = 1;
-        if j <= size(f,1), covers(j) = 1; end
-      end
-    end
-  end
-  f = f((~covered)|covers,:);
-  f = f(:,1:9);
-  f(:,7:9) = 0;
-end
-
-% Compute overlap.
-function f = Overlap(seg1, seg2)
-  f = 0;
-  if seg1(3) == seg2(3)
-    f = max(0,min(seg1(2),seg2(2))-max(seg1(1),seg2(1))+1);
   end
 end
 
@@ -136,14 +74,14 @@ function result = DoLine(line, threshold, minLength)
       end
     end
   end
-  % Choose non-overlapping longest features as keys.
+  % Choose longest features as keys.
   key = [];
   nonkey = [];
   if ~isempty(result)
     [~,idx] = sort(result(:,9),'descend');
     cover = zeros(1,size(line,1));
     for i = idx'
-      if mean(cover(result(i,7):result(i,8))) <= 0.05
+      if mean(cover(result(i,7):result(i,8))) <= 0.75
         key = cat(1,key,result(i,:));
         cover(result(i,7):result(i,8)) = 1;
       else
@@ -174,7 +112,6 @@ function result = DoLine(line, threshold, minLength)
   end
   result = [result;key];
   % Remove redundant features.
-  covers = zeros(1,size(result,1));
   covered = zeros(1,size(result,1));
   for i = 1:size(result,1)
     for j = 1:size(result,1)
@@ -185,13 +122,12 @@ function result = DoLine(line, threshold, minLength)
       b1 = max(result(i,7),result(j,7));
       b2 = min(result(i,8),result(j,8));
       overlap = max(0,b2-b1+1);
-      if overlap/li > 0.75
-        covers(j) = 1;
+      if overlap/li > 0.7
         covered(i) = 1;
       end
     end
   end
-  result = result((~covered)|covers,:);
+  result = result(~covered,:);
   % Sort features.
   if ~isempty(result) 
     [~,idx] = sort(result(:,7));
