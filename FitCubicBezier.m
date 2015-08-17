@@ -1,5 +1,24 @@
 % Fit cubic bezier curve from a series of line points.
-function f = FitCubicBezier(line)
+function f = FitCubicBezier(lines, v4)
+  if ~exist('v4','var')
+    f = FitCubicBezierSegment(lines);
+    return
+  end
+  f = [];
+  for i = 1:length(lines)
+    line = lines{i};
+    p = sort(round(mean(v4(v4(:,9)==i,7:8),2)));
+    p = cat(1, p, size(line,1));
+    start = 1;
+    for j = 1:length(p)
+      cp = FitCubicBezierSegment(line(start:p(j),:));
+      f = cat(1, f, cp(:)');
+      start = p(j);
+    end
+  end
+end
+
+function f = FitCubicBezierSegment(line)
   xy = line(:,1:2);
   n = size(xy,1);
   t = linspace(0, 1, n)';
