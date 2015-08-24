@@ -1,4 +1,9 @@
 function [f,idx] = RectOverlap(rect, rects)
+  if isempty(rect) || isempty(rects) 
+    f = 0;
+    idx = -1;
+    return
+  end
   area = (rect(3)-rect(1)) * (rect(4)-rect(2));
   a = (rects(:,3)-rects(:,1)) .* (rects(:,4)-rects(:,2));
   for i = 1:size(rects,1)
