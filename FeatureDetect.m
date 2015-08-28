@@ -4,11 +4,10 @@
 % - plotFeatures : boolean indicating whether to plot result.
 % return values:
 % - f : a list of points in the following format:
-%       Y Position, X Position, Scale, Entropy (HD),
+%       X Position, Y Position, Scale, Entropy (HD),
 %       Inter-scale saliency (WD), Scale Saliency (YD)
 % remarks:
 % - this function needs 'kadir2001' functions.
-% - the position in output is Y first, X second.
 % references:
 % - Kadir,Brady. Scale, saliency and image description. IJCV,2001,45(2):83-105.
 function f = FeatureDetect(img, scales, plotFeatures)

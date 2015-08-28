@@ -10,7 +10,10 @@ function [rf,out] = MakeSimpleRF(rfsize, degrees, grid)
     a = degrees(i) * pi / 180;
     x1 = x * cos(a) - y * sin(a);
     y1 = x * sin(a) + y * cos(a);
-    rf(:,:,i) = sin(y1*1.5*pi/rfsize) .* exp(-(x1.^2+y1.^2)/rfsize/rfsize*7);
+    rf1 = sin(y1*1.5*pi/rfsize) .* exp(-(x1.^2+y1.^2)/rfsize/rfsize*7);
+    rf1(rf1>0) = rf1(rf1>0) / sum(rf1(rf1>0));
+    rf1(rf1<0) = rf1(rf1<0) / abs(sum(rf1(rf1<0)));
+    rf(:,:,i) = rf1;
   end
   out = ones(grid(1)*73-1,grid(2)*73-1,3);
   for x = 1:grid(2)
