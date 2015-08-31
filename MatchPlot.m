@@ -1,4 +1,4 @@
-function [p1,p2,d] = MatchPlot(img1, img2, feature, threshold)
+function [p1,p2,d,f1,f2,d1,d2] = MatchPlot(img1, img2, feature, threshold)
   [f1,d1] = vl_sift(single(Image2Gray(img1)));
   [f2,d2] = vl_sift(single(Image2Gray(img2)));
   if ~strcmpi(feature,'sift')

@@ -20,22 +20,26 @@ our = [5, 0.68; 10, 0.73; 15, 0.75; 20, 0.77; 25, 0.8; 30, 0.81];
 %figure;
 h1 = plot(our(:,1),our(:,2), '-ok', 'LineWidth', 1);
 hold on;
-h2 = plot(boiman(:,1),boiman(:,2), '--*r', 'LineWidth', 1); % 2008
-h3 = plot(heo(:,1),heo(:,2), '--vg', 'LineWidth', 1); % 2014
-h4 = plot(liu(:,1),liu(:,2), '--hb', 'LineWidth', 1); % 2013
-h5 = plot(bosch2(:,1),bosch2(:,2), '--^m', 'LineWidth', 1); % 2007
-h6 = plot(zhang(:,1),zhang(:,2), '--dc', 'LineWidth', 1); % 2006
+h2 = plot(boiman(:,1),boiman(:,2), ':*', 'LineWidth', 1); % 2008
+h3 = plot(heo(:,1),heo(:,2), ':v', 'LineWidth', 1); % 2014
+h4 = plot(liu(:,1),liu(:,2), ':h', 'LineWidth', 1); % 2013
+h5 = plot(bosch2(:,1),bosch2(:,2), ':^', 'LineWidth', 1); % 2007
+h6 = plot(zhang(:,1),zhang(:,2), ':+', 'LineWidth', 1); % 2006
+h7 = plot(wang(:,1),wang(:,2), ':d', 'LineWidth', 1); % 2006
+h8 = plot(lazebnik(:,1),lazebnik(:,2), ':<', 'LineWidth', 1); % 2006
+h9 = plot(grauman(:,1), grauman(:,2), ':>', 'LineWidth', 1); % 2005
+
 grid on;
 hold off;
 
 xlabel('Number of training samples');
 ylabel('Performance');
-set(gca, 'XLim', [0,30], 'YLim', [0.2,0.85]);
+set(gca, 'XLim', [0,30], 'YLim', [0,0.85]);
 set(gca, 'XTick', 0:5:40, 'YTick', 0:0.1:0.9);
-legend([h1,h3,h4,h2,h5,h6], ...
-  {'Our model', 'Heo et al. 2014', 'Liu et al. 2013', 'Boiman et al. 2008', 'Bosch et al. 2007', 'Zhang et al. 2006'}, ...
-  'fontsize', 11);
-
+legend([h1,h3,h4,h2,h5,h6,h7,h8,h9], ...
+  {'Our model', 'Heo et al. 2014', 'Liu et al. 2013', 'Boiman et al. 2008', 'Bosch et al. 2007', ...
+  'Zhang et al. 2006', 'Wang et al. 2006', 'Lazebnik et al. 2006', 'Grauman et al. 2005'}, ...
+  'fontsize', 10);
 
 pos = get(gcf, 'Position');
 pos(3) = 500; 
