@@ -9,11 +9,13 @@
 function f = NeuralFeature(img, frames)
   frames(1:2,:) = round(frames(1:2,:));
   scales = frames(3,:);
-  temp = round((scales - min(scales)) / (max(scales) - min(scales)) * 3);
-  scales = round(temp / 3 * (max(scales) - min(scales))) + min(scales);
-  scales(scales < 8) = 8;
+  if length(unique(scales)) > 4
+    temp = round((scales - min(scales)) / (max(scales) - min(scales)) * 3);
+    scales = round(temp / 3 * (max(scales) - min(scales))) + min(scales);
+  end
   [nscales,~,scaleIdx] = unique(scales);
   simpleRFsize = round(nscales/3);
+  simpleRFsize(simpleRFsize < 3) = 3;
   complexRFsize = round(nscales);
   oriRange = 0:22.5:170;
   f = zeros(length(oriRange)*16, size(frames,2));

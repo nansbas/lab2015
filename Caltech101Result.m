@@ -18,13 +18,13 @@ boiman = [5, 0.57; 15, 0.735; 30, 0.79]; % Boiman et al (CVPR08)
 our = [5, 0.68; 10, 0.73; 15, 0.75; 20, 0.77; 25, 0.8; 30, 0.81];
 
 %figure;
-h1 = plot(our(:,1),our(:,2), '-o', 'LineWidth', 1);
+h1 = plot(our(:,1),our(:,2), '-ok', 'LineWidth', 1);
 hold on;
-h2 = plot(boiman(:,1),boiman(:,2), '--*', 'LineWidth', 1); % 2008
-h3 = plot(heo(:,1),heo(:,2), '--v', 'LineWidth', 1); % 2014
-h4 = plot(liu(:,1),liu(:,2), '--h', 'LineWidth', 1); % 2013
-h5 = plot(bosch2(:,1),bosch2(:,2), '--^', 'LineWidth', 1); % 2007
-h6 = plot(zhang(:,1),zhang(:,2), '--d', 'LineWidth', 1); % 2006
+h2 = plot(boiman(:,1),boiman(:,2), '--*r', 'LineWidth', 1); % 2008
+h3 = plot(heo(:,1),heo(:,2), '--vg', 'LineWidth', 1); % 2014
+h4 = plot(liu(:,1),liu(:,2), '--hb', 'LineWidth', 1); % 2013
+h5 = plot(bosch2(:,1),bosch2(:,2), '--^m', 'LineWidth', 1); % 2007
+h6 = plot(zhang(:,1),zhang(:,2), '--dc', 'LineWidth', 1); % 2006
 grid on;
 hold off;
 
