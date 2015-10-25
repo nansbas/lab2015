@@ -83,7 +83,7 @@ struct MatrixBase {
   }
   bool SetOutput(int idx) {
     if (idx != 0 && (idx >= nlhs || idx < 0)) return false;
-    plhs[idx] = CreateArray();
+    plhs[idx] = CreateArray(dims, classID);
     return true;
   }
   bool SetInOut(int iIn, int iOut, mxClassID cid) {
