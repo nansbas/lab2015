@@ -13,14 +13,6 @@ struct MatrixBase {
   static void Bind(int nl, mxArray ** pl, int nr, const mxArray ** pr) {
     nlhs = nl; plhs = pl; nrhs = nr; prhs = pr;
   }
-  static bool GetInputValue(int idx, double & value) {
-    if (idx >= nrhs || idx < 0) {
-      mexErrMsgTxt("Not enough input arguments.");
-      return false;
-    }
-    value = mxGetScalar(prhs[idx]);
-    return true;
-  }
   virtual void GetDataPointer() = 0;
   MatrixBase():arr(NULL){}
   void SetDims(const std::vector<mwSize> & d) {
@@ -82,13 +74,19 @@ struct MatrixBase {
     return SetOutput(idx);
   }
   bool SetOutput(int idx) {
-    if (idx != 0 && (idx >= nlhs || idx < 0)) return false;
+    if (idx != 0 && (idx >= nlhs || idx < 0)) {
+      mexErrMsgTxt("Not enough output arguments.");
+      return false;
+    }
     plhs[idx] = CreateArray(dims, classID);
     return true;
   }
   bool SetInOut(int iIn, int iOut, mxClassID cid) {
     if (!SetInput(iIn, cid)) return false;
-    if (iOut != 0 && (iOut >= nlhs || iOut < 0)) return false;
+    if (iOut != 0 && (iOut >= nlhs || iOut < 0)) {
+      mexErrMsgTxt("Not enough output arguments.");
+      return false;
+    }
     plhs[iOut] = mxDuplicateArray(arr);
     arr = plhs[iOut];
     GetDataPointer();
@@ -131,6 +129,15 @@ struct Matrix : public MatrixBase {
   void DeleteData() {
     delete[] data;
     data = NULL;
+  }
+  static bool GetInputValue(int idx, T & value) {
+    if (idx >= nrhs || idx < 0) {
+      mexErrMsgTxt("Not enough input arguments.");
+      return false;
+    }
+    double dValue = mxGetScalar(prhs[idx]);
+    value = (T) dValue;
+    return true;
   }
 };
 
