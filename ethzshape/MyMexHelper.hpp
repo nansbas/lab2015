@@ -15,6 +15,17 @@ struct MatrixBase {
   }
   virtual void GetDataPointer() = 0;
   MatrixBase():arr(NULL){}
+  static std::vector<mwSize> MakeDims(size_t i) {
+    std::vector<mwSize> d;
+    d.push_back((mwSize)i);
+    return d;
+  }
+  static std::vector<mwSize> MakeDims(size_t i, size_t j) {
+    std::vector<mwSize> d;
+    d.push_back((mwSize)i);
+    d.push_back((mwSize)j);
+    return d;
+  }
   void SetDims(const std::vector<mwSize> & d) {
     dims = d;
     nDim = (mwSize) dims.size();
@@ -118,6 +129,8 @@ struct Matrix : public MatrixBase {
   virtual void GetDataPointer() {
     if (classID == mxLOGICAL_CLASS) {
       data = (T *) mxGetLogicals(arr);
+    } else if (classID == mxCELL_CLASS) {
+      data = NULL;
     } else {
       data = (T *) mxGetData(arr);
     }
@@ -138,6 +151,12 @@ struct Matrix : public MatrixBase {
     double dValue = mxGetScalar(prhs[idx]);
     value = (T) dValue;
     return true;
+  }
+};
+
+struct CellMatrix : public Matrix<mxArray *> {
+  void Set(int i, const MatrixBase & m) {
+    mxSetCell(arr, i, m.arr);
   }
 };
 
