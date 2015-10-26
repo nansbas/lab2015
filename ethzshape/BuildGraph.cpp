@@ -1,4 +1,5 @@
 #include "MyMexHelper.hpp"
+#include <map>
 
 // Input Params
 Matrix<double> in; 
@@ -9,6 +10,7 @@ Matrix<int> ridge;
 Matrix<int> lmap;
 Matrix<int> pmap;
 CellMatrix lcell;
+std::vector<Matrix<int> > lines;
 
 // Find Ridge
 void findRidge() {
@@ -27,7 +29,6 @@ struct Tree {
   };
   std::vector<TreeNode> t;
   std::vector<int> line;
-  static std::vector<Matrix<int> > lines;
   void Clear() { t.clear(); }
   size_t Size() { return t.size(); }
   TreeNode & operator()(int i) { return t[i]; }
@@ -76,9 +77,8 @@ struct Tree {
     }
   }
 } tree;
-std::vector<Matrix<int> > Tree::lines;
 void findLine() {
-  Tree::lines.clear();
+  lines.clear();
   for (int y = 0; y < in.h; y++) for (int x = 0; x < in.w; x++) {
     if (ridge(y,x) != 1) continue;
     tree.Clear();
@@ -97,17 +97,26 @@ void findLine() {
   }
 }
 
+// Connect Lines
+struct Graph {
+  struct Link {
+    int fromIdx, toIdx, dist;
+  };
+  std::map<int,> link;
+};
+
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   double dMinLength;
   MatrixBase::Bind(nlhs, plhs, nrhs, prhs);
   if (!in.SetInput(0, mxDOUBLE_CLASS)) return;
   if (!Matrix<int>::GetInputValue(1, minLength)) return;
+  if (!Matrix<int>::GetInputValue(2, maxGap))
   if (!ridge.SetOutput(0, in.dims, mxINT32_CLASS)) return;
   if (!lmap.SetOutput(1, in.dims, mxINT32_CLASS)) return;
   if (!pmap.SetOutput(2, in.dims, mxINT32_CLASS)) return;
   findRidge();
   findLine();
-  if (!lcell.SetOutput(3, MatrixBase::MakeDims(Tree::lines.size()), mxCELL_CLASS)) return;
-  for (int i = 0; i < Tree::lines.size(); i++) lcell.Set(i, Tree::lines[i]);
+  if (!lcell.SetOutput(3, MatrixBase::MakeDims(lines.size()), mxCELL_CLASS)) return;
+  for (int i = 0; i < lines.size(); i++) lcell.Set(i, lines[i]);
 }
