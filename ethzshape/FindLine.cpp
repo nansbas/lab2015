@@ -1,21 +1,20 @@
 #include "MyMexHelper.hpp"
-#include <map>
 
 // Input Params
 Matrix<double> in; 
-int minLength; 
+int minLength;
+double minValue;
 
 // Output Params
 Matrix<int> ridge;
 Matrix<int> lmap;
-Matrix<int> pmap;
-CellMatrix lcell;
-std::vector<Matrix<int> > lines;
+CellMatrix lines;
 
 // Find Ridge
 void findRidge() {
   for (int i = 1; i + 1 < in.h; i++) for (int j = 1; j + 1 < in.w; j++) {
     double ij = in(i,j);
+    if (ij <= minValue) continue;
     if ((ij >= in(i-1,j) && ij > in(i+1,j)) || (ij >= in(i,j-1) && ij > in(i,j+1)))
       ridge(i,j) = 1;
   }
@@ -62,23 +61,20 @@ struct Tree {
     for (i = q.back(); i >= 0; i = t[i].link) line.push_back(i);
   }
   void MapLine() {
-    lines.push_back(Matrix<int>());
-    Matrix<int> & l = lines.back();
-    l.CreateArray(MatrixBase::MakeDims(line.size(), 2), mxINT32_CLASS);
-    int lidx = lines.size();
+    Matrix<int> & l = lines.Append<int>(MatrixBase::MakeDim(line.size(), 2), mxINT32_CLASS);
+    int lidx = lines.Size();
     for (int i = 0; i < t.size(); i++) ridge(t[i].y,t[i].x) = 1;
     for (int i = 0; i < line.size(); i++) {
       int k = line[i];
       ridge(t[k].y,t[k].x) = 2;
       lmap(t[k].y,t[k].x) = lidx;
-      pmap(t[k].y,t[k].x) = i + 1;
       l(i,0) = t[k].x + 1;
       l(i,1) = t[k].y + 1;
     }
   }
 } tree;
+
 void findLine() {
-  lines.clear();
   for (int y = 0; y < in.h; y++) for (int x = 0; x < in.w; x++) {
     if (ridge(y,x) != 1) continue;
     tree.Clear();
@@ -97,26 +93,16 @@ void findLine() {
   }
 }
 
-// Connect Lines
-struct Graph {
-  struct Link {
-    int fromIdx, toIdx, dist;
-  };
-  std::map<int,> link;
-};
-
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  double dMinLength;
   MatrixBase::Bind(nlhs, plhs, nrhs, prhs);
   if (!in.SetInput(0, mxDOUBLE_CLASS)) return;
   if (!Matrix<int>::GetInputValue(1, minLength)) return;
-  if (!Matrix<int>::GetInputValue(2, maxGap))
+  if (!Matrix<double>::GetInputValue(2, minValue)) return;
   if (!ridge.SetOutput(0, in.dims, mxINT32_CLASS)) return;
   if (!lmap.SetOutput(1, in.dims, mxINT32_CLASS)) return;
-  if (!pmap.SetOutput(2, in.dims, mxINT32_CLASS)) return;
+  if (!lines.SetOutput(2)) return;
   findRidge();
   findLine();
-  if (!lcell.SetOutput(3, MatrixBase::MakeDims(lines.size()), mxCELL_CLASS)) return;
-  for (int i = 0; i < lines.size(); i++) lcell.Set(i, lines[i]);
+  lines.Finish();
 }
