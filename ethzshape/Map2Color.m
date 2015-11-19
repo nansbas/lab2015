@@ -7,5 +7,5 @@ function out = Map2Color(map)
     g(map == i) = rand();
     b(map == i) = rand();
   end
-  out = cat(3,r,g,b);
+  out = uint8(cat(3,r,g,b)*255);
 end
