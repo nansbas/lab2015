@@ -1,3 +1,33 @@
+fprintf('Category ');
+for i = 1:5
+ fprintf('& %s ', LqEthzTime(i).name);
+end
+fprintf('\\\\\nOur method (mean)');
+for i = 1:5
+ fprintf('& %.2f ', mean(LqEthzTime(i).time(1,:)));
+end
+fprintf('\\\\\nOur method (min)');
+for i = 1:5
+ fprintf('& %.2f ', min(LqEthzTime(i).time(1,:))+0.01);
+end
+fprintf('\\\\\nOur method (max)');
+for i = 1:5
+ fprintf('& %.1f ', max(LqEthzTime(i).time(1,:)));
+end
+fprintf('\\\\\nMa et al (mean)');
+for i = 1:5
+ fprintf('& %.1f ', mean(LqEthzTime(i).time(2,:)));
+end
+fprintf('\\\\\nMa et al (min)');
+for i = 1:5
+ fprintf('& %.1f ', min(LqEthzTime(i).time(2,:)));
+end
+fprintf('\\\\\nMa et al (max)');
+for i = 1:5
+ fprintf('& %.1f ', max(LqEthzTime(i).time(2,:)));
+end
+fprintf('\\\\\n')
+%{
 function IeeeTipFigure(ethz, idx)
   p = ethz(idx).time;
   n = size(p,2);
@@ -12,7 +42,7 @@ function IeeeTipFigure(ethz, idx)
     legend(ethz(idx).legend)
   end
 end
-
+%}
 %{
 imgidx = 11;
 lineidx = [6,7];
