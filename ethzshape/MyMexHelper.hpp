@@ -138,7 +138,7 @@ struct Matrix : public MatrixBase {
     return data[i + j * h];
   }
   inline T & operator() (int i) {
-    return date[i];
+    return data[i];
   }
   inline const T & operator() (int i, int j, int k) const {
     return data[i + j * h + k * h * w];
