@@ -68,11 +68,10 @@ function result = DoLine(line, threshold, minLength)
   for i = 1:5:size(line,1)
     for j = (i+minLength):5:size(line,1)
       f = FitV4(line(i:j,1:2));
-      result = cat(1,result,[f,i,j,j-i+1]);
+      if (f(7) > threshold || f(5)*f(6) < 0), continue; end
+      result = cat(1,result,[f(1:6),i,j,j-i+1]);
     end
   end
-  if isempty(result), return; end
-  result = result(result(:,7)<threshold, [1:6,8:10]);
   if isempty(result), return; end
   % Choose longest features as keys.
   [~,idx] = sort(result(:,9),'descend');
