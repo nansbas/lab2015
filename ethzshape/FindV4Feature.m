@@ -7,7 +7,7 @@
 %     lines is a cell array of matrix {[x1,y1;x2,y2;...],...}.
 %     threshold is the maximal summed error in least squares fitting.
 %     minLength is the minimal feature length.
-%     We usually use FindV4Feature(lines, 0.05, 20) for ETHZ-shape images.
+%     We usually use FindV4Feature(lines, 2.5, 20) for ETHZ-shape images.
 %     Returned features f is row matrix,
 %     [x1,y1,x2,y2,a,b,startPointIndex,endPointIndex,lineIndex;...].
 %     Normalized model f is row matrix,
@@ -24,7 +24,7 @@ function f = FindV4Feature(lines, threshold, minLength)
   else
     f = [];
     for i = 1:length(lines)
-      result = DoLine(lines{i}, threshold, minLength);
+      result = DoLine(double(lines{i}), threshold, minLength);
       if ~isempty(result)
         result(:,9) = i;
         f = cat(1,f,result(:,1:9));
@@ -35,11 +35,10 @@ function f = FindV4Feature(lines, threshold, minLength)
 end
 
 % Fit V4 feature.
-%   It returns empty matrix if no feature fits.
-%   The feature is in [x1,y1,x2,y2,a,b].
-function f = FitV4(line, threshold)
-  f = [];
-  xy = line(:,1:2);
+%   The feature is in [x1,y1,x2,y2,a,b,error].
+function f = FitV4(line)
+  f = [0, 0, 0, 0, 0, 0, Inf];
+  xy = double(line(:,1:2));
   len = size(xy,1);
   p = xy(1,1:2);
   q = xy(len,1:2);
@@ -48,60 +47,58 @@ function f = FitV4(line, threshold)
   xy = [xy,ones(len,1)]*t;
   x = xy(:,1);
   y = xy(:,2);
-  if sum(x<-1)>1 || sum(x>1)>1
-    return
-  end
-  w = conv(diff(x), [1,1]/2);
-  A = [x.^2-abs(x)*2+1,1-x.^2];
-  ySign = sign(sum(y));
-  b = lsqnonneg(diag(w)*A, (y .* w) * ySign);
-  b = b * ySign;
-  s = sum(abs(A*b-y).*w)*sum((p-q).^2)/size(xy,1); % sum((A*b-y).^2);
-  if b(1)*b(2) >= 0 && s <= threshold
-    f = [p,q,b'];
+  if sum(x<-1)<=1 && sum(x>1)<=1
+    w = conv(diff(x), [1,1]/2);
+    A = [x.^2-abs(x)*2+1,1-x.^2];
+    ySign = sign(sum(y));
+    b = lsqnonneg(diag(w)*A, (y .* w) * ySign);
+    b = b * ySign;
+    s = sum(abs(A*b-y).*w)*sum((p-q).^2)/size(xy,1); % sum((A*b-y).^2);
+    f = [p,q,b',s];
   end
 end
 
 % Find V4 features on a single line.
 function result = DoLine(line, threshold, minLength)
+  coverThreshold = 0.7;
+  result = []; 
+  key = []; 
+  nonkey = [];
   % Get all features in steps of 5.
-  result = [];
   for i = 1:5:size(line,1)
     for j = (i+minLength):5:size(line,1)
-      f = FitV4(line(i:j,1:2), threshold);
-      if ~isempty(f)
-        result = cat(1,result,[f,i,j,j-i+1]);
-      end
+      f = FitV4(line(i:j,1:2));
+      result = cat(1,result,[f,i,j,j-i+1]);
     end
   end
+  if isempty(result), return; end
+  result = result(result(:,7)<threshold, [1:6,8:10]);
+  if isempty(result), return; end
   % Choose longest features as keys.
-  key = [];
-  nonkey = [];
-  if ~isempty(result)
-    [~,idx] = sort(result(:,9),'descend');
-    cover = zeros(1,size(line,1));
-    for i = idx'
-      if mean(cover(result(i,7):result(i,8))) <= 0.75
-        key = cat(1,key,result(i,:));
-        cover(result(i,7):result(i,8)) = 1;
-      else
-        nonkey = cat(1,nonkey,result(i,:));
-      end
+  [~,idx] = sort(result(:,9),'descend');
+  cover = zeros(1,size(line,1));
+  for i = idx'
+    if mean(cover(result(i,7):result(i,8))) <= 0.5
+      key = cat(1,key,result(i,:));
+      cover(result(i,7):result(i,8)) = 1;
+    else
+      nonkey = cat(1,nonkey,result(i,:));
     end
   end
+  if isempty(key), return; end
   % Find gap-filling features in non-keys.
   result = [];
-  if ~isempty(key) && ~isempty(nonkey)
+  if ~isempty(nonkey)
     [~,idx] = sort(key(:,7));
     key = key(idx,:);
     for i = 1:(size(key,1)-1)
-      u = round(mean(key(i,7:8)));
-      v = round(mean(key(i+1,7:8)));
-      m = round(mean([key(i,8),key(i+1,7)]));
-      r = max(abs(m-u),abs(m-v));
+      u = round(mean(key(i,7:8))); % mid[i]
+      v = round(mean(key(i+1,7:8))); % mid[i+1]
+      m = round(mean([key(i,8),key(i+1,7)])); % mid of gap[i,i+1]
+      r = max(abs(m-u),abs(m-v)); % define gap [m-r,m+r]
       r2 = min(abs(key(i,7)-key(i,8)),abs(key(i+1,7)-key(i+1,8)))/6 ...
-        + max(0,key(i+1,7)-key(i,8))/2;
-      m2 = mean(nonkey(:,7:8),2);
+        + max(0,key(i+1,7)-key(i,8))/2; % define gap center [m-r2,m+r2]
+      m2 = mean(nonkey(:,7:8),2); % mid[all]
       fillgap = nonkey(nonkey(:,7)>=m-r & nonkey(:,8)<=m+r ...
         & nonkey(:,7)<m & nonkey(:,8)>m & m2<=m+r2 & m2>=m-r2,:);
       if ~isempty(fillgap)
@@ -110,7 +107,7 @@ function result = DoLine(line, threshold, minLength)
       end
     end
   end
-  result = [result;key];
+  result = [key;result];
   % Remove redundant features.
   covered = zeros(1,size(result,1));
   for i = 1:size(result,1)
@@ -122,7 +119,7 @@ function result = DoLine(line, threshold, minLength)
       b1 = max(result(i,7),result(j,7));
       b2 = min(result(i,8),result(j,8));
       overlap = max(0,b2-b1+1);
-      if overlap/li > 0.7
+      if overlap/li > coverThreshold
         covered(i) = 1;
       end
     end
