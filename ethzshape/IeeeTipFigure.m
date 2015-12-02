@@ -1,4 +1,20 @@
-function IeeeTipFigure(ethz, i, j, t1, t2, t3)
+function IeeeTipFigure(mpeg, i, j)
+  img = mpeg(i).files(j).image;
+  img = padarray(img, [10,10]); 
+  img = uint8((img > 0) * 255);
+  img = imresize(img, sqrt(20000/size(img,1)/size(img,2)));
+  [rf,~] = MakeSimpleRF(7, 0:30:170, [2,3]);
+  [~,~,r] = SimpleCell(img, rf);
+  [~,m,l] = FindLine(double(r), 9, 0);
+  close all
+  subplot(1,2,1);
+  imshow(img);
+  subplot(1,2,2);
+  FindV4Feature(l, 3, 7);
+  axis off
+end
+
+function EthzV4FeatureDemo(ethz, i, j, t1, t2, t3)
   img = ethz(i).files(j).image;
   ime = ethz(i).files(j).edgeImage;
   imshow(img);
@@ -12,7 +28,7 @@ function IeeeTipFigure(ethz, i, j, t1, t2, t3)
   imwrite(img, 'd:/1.png');
 end
 
-function IeeeTipEthzTimeTable()
+function EthzTimeTable()
   fprintf('Category ');
   for i = 1:5
    fprintf('& %s ', LqEthzTime(i).name);
@@ -44,7 +60,7 @@ function IeeeTipEthzTimeTable()
   fprintf('\\\\\n')
 end
 
-function IeeeTipEthzTimeFigure(ethz, idx)
+function EthzTimeFigure(ethz, idx)
   p = ethz(idx).time;
   n = size(p,2);
   plot(1:n, p(1,:),'-',1:n,p(2,:),'--','LineWidth',2)
@@ -59,7 +75,7 @@ function IeeeTipEthzTimeFigure(ethz, idx)
   end
 end
 
-function IeeeTipRouteDemo()
+function RouteDemo()
   imgidx = 11;
   lineidx = [6,7];
   img = ethzdata(1).files(imgidx).edge;
