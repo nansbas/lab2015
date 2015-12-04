@@ -61,15 +61,15 @@ struct Tree {
     for (i = q.back(); i >= 0; i = t[i].link) line.push_back(i);
   }
   void MapLine() {
-    Matrix<int> & l = lines.Append<int>(MatrixBase::MakeDim(line.size(), 2), mxINT32_CLASS);
+    Matrix<double> & l = lines.Append<double>(MatrixBase::MakeDim(line.size(), 2), mxDOUBLE_CLASS);
     int lidx = lines.Size();
     for (int i = 0; i < t.size(); i++) ridge(t[i].y,t[i].x) = 1;
     for (int i = 0; i < line.size(); i++) {
       int k = line[i];
       ridge(t[k].y,t[k].x) = 2;
       lmap(t[k].y,t[k].x) = lidx;
-      l(i,0) = t[k].x + 1;
-      l(i,1) = t[k].y + 1;
+      l(i,0) = double(t[k].x + 1);
+      l(i,1) = double(t[k].y + 1);
     }
   }
 } tree;
