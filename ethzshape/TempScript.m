@@ -1,5 +1,5 @@
 %% load horse-data
-%
+%{
 %[rf,out]=MakeSimpleRF(9,0:5:175,[6,6]);
 for i=1:length(horsedata.posFiles)
   close all;
@@ -55,22 +55,42 @@ for i = 1:5
     end
   end
 end
+for i = 4:5
+  for j = 1:length(ethz(i).files)
+    for k = 1:size(ethz(i).files(j).groundtruth,1)
+      gt = ethz(i).files(j).groundtruth(k,:);
+      if i <= 3
+        maskname = ['D:\Downloads\ethz_shape_classes_v12\',ethz(i).name,'\',ethz(i).files(j).name,'.mask.',num2str(k-1),'.png'];
+        img = imread(maskname) > 0;
+      else
+        maskname = ['D:\Downloads\ethz_shape_classes_v12\',ethz(i).name,'\',ethz(i).files(j).name,'_',lower(ethz(i).name),'_outlines.pgm'];
+        img = imread(maskname);
+        img = img ~= median(img(:));
+      end
+      img = img(gt(2):gt(4),gt(1):gt(3),1);
+      imwrite(img, ['../temp/',num2str(i),'-',num2str(j),'-',num2str(k),'-',ethz(i).name,'-',ethz(i).files(j).name,'.png']);
+      ethz(i).files(j).mask{k}=img;
+    end
+  end
+end
 %}
-%% read data from ethz-data.
+%% get V4 features.
 %{
 ethzv4 = [];
-for i = 1:12
-  for j = 1:length(ethzdata(i).files)
-    fprintf('Run on image %d:%d:%s ... ... ', i, j, ethzdata(i).files(j).name);
-    img = double(ethzdata(i).files(j).edge);
-    [map,lines] = FindLine(img, img, 0.1, 20);
-    f = FindV4Feature(lines, 1.6, 20);
+for i = 1:5
+  ethzv4(i).name = ethz(i).name;
+  for j = 1:length(ethz(i).files)
+    fprintf('Run on image %d:%d:%s ... ... \n', i, j, ethz(i).files(j).name);
+    img = double(ethz(i).files(j).edgeImage);
+    [~,~,lines] = FindLine(img, 20, 1);
+    close all;
+    f = FindV4Feature(lines, 2.5, 20);
+    ethzv4(i).files(j).name = ethz(i).files(j).name;
+    ethzv4(i).files(j).groundtruth = ethz(i).files(j).groundtruth;
+    ethzv4(i).files(j).mask = ethz(i).files(j).mask;
     ethzv4(i).files(j).v4 = f;
-    ethzv4(i).files(j).groundtruth = ethzdata(i).files(j).groundtruth;
-    ethzv4(i).files(j).name = ethzdata(i).files(j).name;
-    saveas(gcf, ['temp/newv4-',num2str(i),'-',num2str(j),'.jpg']);
-    close gcf;
-    fprintf('OK\n');
+    ethzv4(i).files(j).lines = lines;
+    saveas(gcf, ['../temp/v4',num2str(i),'-',num2str(j),'.jpg']);
   end
 end
 %}
