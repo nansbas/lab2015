@@ -1,8 +1,20 @@
-function som = LearnV4SOM(ethz)
+function som = LearnV4SOM(ethz, som)
   for i = 1:5
-    % ethz(i).sample = GetGroundTruth(ethz(i).files);
+    ethz(i).sample = GetGroundTruth(ethz(i).files);
   end
-  som = CreateSOM(16, 9, 5);
+  if ~exist('som','var'), som = CreateSOM(12, 9, 5); end
+  for i = 1:200000
+    category = 5 - mod(i,5);
+    nsample = length(ethz(category).sample);
+    sid = nsample - mod(ceil(i/5),nsample);
+    som = SOMLearnSample(som, ethz(category).sample{sid}, category, 0.05, 0.3);
+    if mod(i,1000) == 0
+      close all;
+      DrawSOM(som);
+      saveas(gcf, 'som.png');
+      saveas(gcf, 'som.fig');
+    end
+  end
 end
 
 % Create SOM with n*n units, m-dim input, k categories.
@@ -16,7 +28,29 @@ end
 
 % Draw SOM.
 function DrawSOM(som)
+  r1 = 0.05; r2 = 0.1;
+  p = [som.weight(:,1:4)*r2+som.weight(:,[7:8,7:8]), som.weight(:,5:6)];
+  p = [p(:,1:4), ComputePeakPointAndScale(p)];
   for i = 1:5
+    subplot(2,5,i); hold on
+    colors = 1 - (som.category(:,i)+1)/(max(som.category(:,i))+1)*[1,1,1];
+    [~,idx] = sort(som.category(:,i));
+    for j = idx'
+      rectangle('Position',[som.weight(j,7:8)-r1,r1*2,r1*2],'Curvature',[1,1],'EdgeColor',colors(j,:));
+    end
+    [x,y] = meshgrid(1:size(som.weight,1));
+    for j = [x(som.neighbor),y(som.neighbor)]'
+      if j(1)>j(2), line(som.weight(j',7), som.weight(j',8)); end
+    end
+    axis ij; axis off; axis equal; hold off
+    subplot(2,5,i+5); hold on
+    colors = 1 - (som.category(:,i)+1)/(max(som.category(:,i))+1)*[0.5,0.5,0.5];
+    color2 = 1 - (som.category(:,i)+1)/(max(som.category(:,i))+1)*[1,1,0.2];
+    for j = idx'
+      rectangle('Position',[som.weight(j,7:8)-r2,r2*2,r2*2],'Curvature',[1,1],'EdgeColor',colors(j,:));
+      line(p(j,[1,5,3]),p(j,[2,6,4]),'Color',color2(j,:));
+    end
+    axis ij; axis off; axis equal; hold off
   end
 end
 
@@ -36,7 +70,7 @@ function [som,winner] = SOMLearnSample(som, x, category, rate, nfact)
   reverse = (d2 < d1);
   dmu(reverse) = dmu2(reverse);
   d1(reverse) = d2(reverse);
-  d = d1/2 + dmu + DiffMatrix(x(:,10:11), c(:,7:8), [1,1])*2.4; % 2.3856 = max(d1/2+dmu)/sqrt(2).
+  d = (d1/2 + dmu) + DiffMatrix(x(:,10:11), c(:,7:8), [1,1])*2.4; % 2.3856 = max(d1/2+dmu)/sqrt(2).
   [cidx,xidx] = meshgrid(1:size(c,1),1:size(x,1));
   [~,idx] = sort(d(:));
   cused = zeros(size(c,1),1);
