@@ -1,9 +1,9 @@
-function som = LearnV4SOM(ethz, som)
+function [som,ethz] = LearnV4SOM(ethz, som)
   for i = 1:5
     ethz(i).sample = GetGroundTruth(ethz(i).files);
   end
   if ~exist('som','var'), som = CreateSOM(12, 9, 5); end
-  for i = 1:200000
+  for i = 1:1000
     category = 5 - mod(i,5);
     nsample = length(ethz(category).sample);
     sid = nsample - mod(ceil(i/5),nsample);
