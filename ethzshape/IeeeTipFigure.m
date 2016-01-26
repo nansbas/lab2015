@@ -1,4 +1,27 @@
-function IeeeTipFigure(mpeg, i, j)
+function IeeeTipFigure(data, i)
+  close all
+  fontsize = 15;
+  arg = {};
+  leg = {};
+  p = 1;
+  for j = 1:length(data(i).line)
+    if isempty(data(i).line(j).fppi), continue; end
+    arg{p*2-1} = data(i).line(j).fppi;
+    arg{p*2} = data(i).line(j).rate;
+    leg{p} = data(i).line(j).author;
+    p = p + 1;
+  end
+  plot(arg{:},'linewidth',3);
+  set(gca,'xlim',[0,1.5],'fontsize',fontsize,'xtick',0:0.2:1.5,'ytick',0:0.2:1,'linewidth',2);
+  xlabel('False-positives per image','fontsize',fontsize);
+  ylabel('Detection rate','fontsize',fontsize);
+  title(data(i).name,'fontsize',fontsize);
+  %legend(leg,'fontsize',fontsize,'linewidth',2);
+  set(gcf,'position',[100,100,400,280],'paperpositionmode','auto');
+  grid on
+end
+
+function IeeeTipFigureMpegDemo(mpeg, i, j)
   img = mpeg(i).files(j).image;
   img = padarray(img, [10,10]); 
   img = uint8((img > 0) * 255);
