@@ -1,5 +1,12 @@
 function IeeeTipFigure(data, i)
   close all
+  hold on
+  colororder = [0,0,0;0,0,1;1,0,0;0,0.8,0.2;0.7,0.7,0;0.7,0,0.7];
+  idx = [];
+  for j = 1:length(data(i).line)
+    idx(j) = isempty(data(i).line(j).fppi);
+  end
+  set(gca,'ColorOrder',colororder(~idx,:));
   fontsize = 15;
   arg = {};
   leg = {};
@@ -16,9 +23,11 @@ function IeeeTipFigure(data, i)
   xlabel('False-positives per image','fontsize',fontsize);
   ylabel('Detection rate','fontsize',fontsize);
   title(data(i).name,'fontsize',fontsize);
-  %legend(leg,'fontsize',fontsize,'linewidth',2);
+  legend(leg,'fontsize',fontsize,'linewidth',1);
   set(gcf,'position',[100,100,400,280],'paperpositionmode','auto');
   grid on
+  box on
+  hold off
 end
 
 function IeeeTipFigureMpegDemo(mpeg, i, j)
