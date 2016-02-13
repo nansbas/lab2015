@@ -1,4 +1,28 @@
-function IeeeTipFigure(data, i)
+function result = IeeeTipFigure(image)
+  [rf,~] = MakeSimpleRF(15,0:10:170,[3,6]);
+  for i = 1:length(image)
+    img = image{i};
+    [out,~,ridge] = SimpleCell(img,rf);
+    [mout,idx] = max(out,[],3);
+    mout(ridge==0) = 0;
+    result(i).image = img;
+    result(i).out = mout;
+    for j = 1:max(idx(:))
+      result(i).ori(j) = sum(mout(idx==j));
+    end
+    p = result(i).ori;
+    p = p / sum(p);
+    result(i).entropy = -sum(p.*log(p+0.0001));
+    close all
+    bar(result(i).ori);
+    set(gca,'ylim',[0,87],'xlim',[0,19],'xtick',[],'ytick',[]);
+    xlabel(['entropy=',num2str(result(i).entropy)],'fontsize',14)
+    set(gcf,'position',[100,100,200,140],'paperpositionmode','auto');
+    saveas(gcf,['~/Desktop/plot',num2str(i),'.png']);
+  end
+end
+
+function IeeeTipFigureEthzFppi(data, i)
   close all
   hold on
   colororder = [0,0,0;0,0,1;1,0,0;0,0.8,0.2;0.7,0.7,0;0.7,0,0.7];
