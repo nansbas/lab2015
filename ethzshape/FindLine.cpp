@@ -4,7 +4,7 @@
 ///   minLength is the minimal length of lines. minValue is the minimal value of ridge pixel.
 ///   ridge is integer, 0 for non-ridge, 1 for ridge, 2 for converted lines.
 ///   map is integer, index of lines starting from 1.
-///   lines is cell, containing line points.
+///   lines is cell, containing line points and point value [x, y, v; ...].
 
 #include "MyMexHelper.hpp"
 
@@ -69,7 +69,7 @@ struct Tree {
     for (i = q.back(); i >= 0; i = t[i].link) line.push_back(i);
   }
   void MapLine() {
-    Matrix<double> & l = lines.Append<double>(MatrixBase::MakeDim(line.size(), 2), mxDOUBLE_CLASS);
+    Matrix<double> & l = lines.Append<double>(MatrixBase::MakeDim(line.size(), 3), mxDOUBLE_CLASS);
     int lidx = lines.Size();
     for (int i = 0; i < t.size(); i++) ridge(t[i].y,t[i].x) = 1;
     for (int i = 0; i < line.size(); i++) {
@@ -78,6 +78,7 @@ struct Tree {
       lmap(t[k].y,t[k].x) = lidx;
       l(i,0) = double(t[k].x + 1);
       l(i,1) = double(t[k].y + 1);
+      l(i,2) = in(t[k].y, t[k].x);
     }
   }
 } tree;
