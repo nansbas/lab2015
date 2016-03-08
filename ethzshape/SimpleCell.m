@@ -1,3 +1,9 @@
+% Filter image with simple cell receptive field.
+%  img: RGB or grayscale image.
+%  rf: simple cell receptive fields with degrees from 0 to 180.
+%  out: 3D output for all receptive fields.
+%  ori: orientation according to maximal output.
+%  ridge: find ridge from maximal output across orientations.
 function [out,ori,ridge] = SimpleCell(img, rf)
   if size(img,3) == 3
     img = rgb2gray(img);

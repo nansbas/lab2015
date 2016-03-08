@@ -1,3 +1,4 @@
+% Convert integer indexed map to RGB color image.
 function out = Map2Color(map)
   r = zeros(size(map,1),size(map,2));
   g = zeros(size(map,1),size(map,2));

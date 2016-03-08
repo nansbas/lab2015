@@ -1,3 +1,8 @@
+% Make Simple Receptive Field.
+%  Generate Gabor filters of `rfsize` x `rfsize`, with orientations in `degrees`.
+%  `grid` gives the layout of the rendered filters, 
+%  for example, [3,2] for 6 filters. It is optional.
+%  `rf` contains all filters and `out` is the rendered image.
 function [rf,out] = MakeSimpleRF(rfsize, degrees, grid)
   if ~exist('grid','var')
     grid = [1,length(degrees)];
