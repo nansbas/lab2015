@@ -1,3 +1,11 @@
+/// [ridge, map, lines] = FindLine(in, minLength, minValue)
+///   Get ridge and divide ridge into lines.
+///   in should be double.
+///   minLength is the minimal length of lines. minValue is the minimal value of ridge pixel.
+///   ridge is integer, 0 for non-ridge, 1 for ridge, 2 for converted lines.
+///   map is integer, index of lines starting from 1.
+///   lines is cell, containing line points.
+
 #include "MyMexHelper.hpp"
 
 // Input Params

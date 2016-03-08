@@ -1,23 +1,18 @@
-function [rf,out] = MakeSimpleRF(rfsize, degrees, grid, iscos)
+function [rf,out] = MakeSimpleRF(rfsize, degrees, grid)
   if ~exist('grid','var')
     grid = [1,length(degrees)];
-  end
-  if ~exist('iscos','var')
-    iscos = 0;
   end
   [x,y] = meshgrid(1:rfsize);
   x = x - ceil(rfsize/2);
   y = y - ceil(rfsize/2);
   rf = zeros(rfsize,rfsize,length(degrees));
+  rr = rfsize * 0.45;
   for i = 1:length(degrees)
     a = degrees(i) * pi / 180;
     x1 = x * cos(a) - y * sin(a);
     y1 = x * sin(a) + y * cos(a);
-    if iscos
-      rf1 = cos(y1*4*pi/rfsize) .* exp(-(x1.^2+y1.^2)/rfsize/rfsize*20);
-    else
-      rf1 = sin(y1*4*pi/rfsize) .* exp(-(x1.^2+y1.^2)/rfsize/rfsize*20);
-    end
+    % rf1 = sin(y1*pi/rr) .* ((exp((sqrt(x1.^2 + y1.^2)-rr)*32/rr)+1).^(-1));
+    rf1 = sin(y1*pi/rr) .* exp(-(x1.^2+y1.^2)/rr/rr);
     rf1(rf1>0) = rf1(rf1>0) / sum(rf1(rf1>0));
     rf1(rf1<0) = rf1(rf1<0) / abs(sum(rf1(rf1<0)));
     rf(:,:,i) = rf1;
