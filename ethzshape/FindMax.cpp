@@ -28,7 +28,7 @@ void findMaximum()
 {
   int gap = neighbor * 2;
   std::vector<double> h(in.w), g(in.w);
-  std::vector<bool> r(in.w), t(in.w);
+  std::vector<mxLogical> r(in.w), t(in.w);
   for (int i = 0; i < in.h; i++) {
     for (int j = 0; j < in.w; j++) {
       if (j % gap == 0 || in(i,j) > h[j-1]) { h[j] = in(i,j); r[j] = 0; }
@@ -42,11 +42,12 @@ void findMaximum()
     }
     for (int j = 0; j < in.w; j++) {
       int a = j - neighbor, b = j + neighbor;
-      if (a < 0 || g[a] < h[b]) { maxv(i,j) = h[b]; maxm(i,j) = r[b]; }
-      else if (b >= in.w || g[a] > h[b]) { maxv(i,j) = g[a]; maxm(i,j) = t[a]; }
-      else { maxv(i,j) = g[a]; maxm(i,j) = 1; }
+      if (a < 0 || (g[a] < h[b] && b < in.w)) {}// maxv(i,j) = h[b]; maxm(i,j) = r[b]; }
+      else if (b >= in.w || (g[a] > h[b] && a >= 0)) {}// maxv(i,j) = g[a]; maxm(i,j) = t[a]; }
+      else {}// maxv(i,j) = g[a]; maxm(i,j) = 1; }
     }
   }
+  h.resize(in.h); g.resize(in.h); r.resize(in.h); t.resize(in.h);
   for (int j = neighbor; j + neighbor < in.w; j++) {
     for (int i = 0; i < in.h; i++) {
       if (i % gap == 0 || maxv(i,j) > h[i-1]) { h[i] = maxv(i,j); r[i] = maxm(i,j); }
@@ -60,14 +61,15 @@ void findMaximum()
     }
     for (int i = 0; i < in.h; i++) {
       int a = i - neighbor, b = j + neighbor;
-      if (a < 0 || g[a] < h[b]) { maxv(i,j) = h[b]; maxm(i,j) = r[b]; }
-      else if (b >= in.w || g[a] > h[b]) { maxv(i,j) = g[a]; maxm(i,j) = t[a]; }
-      else { maxv(i,j) = g[a]; maxm(i,j) = 1; }
+      if (a < 0 || (g[a] < h[b] && b < in.w)) {}// maxv(i,j) = h[b]; maxm(i,j) = r[b]; }
+      else if (b >= in.w || (g[a] > h[b] && a >= 0)) {}// maxv(i,j) = g[a]; maxm(i,j) = t[a]; }
+      else {}// maxv(i,j) = g[a]; maxm(i,j) = 1; }
     }
-  }
+  }/*
   for (int i = 0; i < in.h; i++) for (int j = 0; j < in.w; j++) {
     if (i < neighbor || j < neighbor || i + neighbor >= in.h || j + neighbor >= in.w) maxm(i,j) = 0;
-    if (maxv(i,j) > in(i,j)) maxm(i,j) = 0;
-    if (maxm(i,j)) maxm(i,j) = 0; else maxm(i,j) = 1;
-  }
+    else if (maxv(i,j) > in(i,j)) maxm(i,j) = 0;
+    else if (maxm(i,j)) maxm(i,j) = 0; 
+    else maxm(i,j) = 1;
+  }*/
 }

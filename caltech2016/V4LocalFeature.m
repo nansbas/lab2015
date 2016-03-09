@@ -4,14 +4,19 @@ function [frame,enty,acty] = V4LocalFeature(img)
   [xp,yp] = meshgrid(1:size(img,2),1:size(img,1));
   for s = scale
     [rf,~] = MakeSimpleRF(s,0:20:175,[3,3]);
-    [~,cout] = SimpleCell(img,rf,fspecial('gauss',ceil(s*3),s*0.7));
+    [sout,~,ridge] = SimpleCell(img,rf);
+    cout = sout;
+    for i = 1:size(rf,3)
+      temp = cout(:,:,i); temp(ridge==0) = 0;
+      cout(:,:,i) = imfilter(temp, fspecial('gauss', s*2, s/2));
+    end
     acty = max(cout,[],3);
     cout(cout<0.001) = 0.001;
     p = cout ./ repmat(sum(cout,3),[1,1,size(rf,3)]);
     enty = -sum(p.*log(p),3);
-    mact = imdilate(acty, strel('square',s));
-    p = enty<mean(enty(:)) & acty>mean(acty(:)) & acty==mact;
-    frame = cat(1, frame, [xp(p),yp(p),p(p)*s]);
+    %mact = imdilate(acty, strel('square',s));
+    %p = enty<mean(enty(:)) & acty>mean(acty(:)) & acty==mact;
+    %frame = cat(1, frame, [xp(p),yp(p),p(p)*s]);
   end
   close all;
   imshow(img);
