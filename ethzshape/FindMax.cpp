@@ -2,6 +2,7 @@
 ///   Find local maximal points. in is double.
 ///   max_value is double, the maximal filtering result.
 ///   max_map is logical, the maximal point map.
+///   The max_map contains strict maximal points (can not equal to any neighbor).
 ///   neighbor is the size of the rectangular filter region.
 
 #include "MyMexHelper.hpp"
