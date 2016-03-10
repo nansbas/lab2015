@@ -1,5 +1,5 @@
 function [frame,enty,acty] = V4LocalFeature(img)
-  scale = 9;%[9,13,19,27];
+  scale = [9,13,19,27];
   frame = [];
   [xp,yp] = meshgrid(1:size(img,2),1:size(img,1));
   for s = scale
@@ -14,9 +14,9 @@ function [frame,enty,acty] = V4LocalFeature(img)
     cout(cout<0.001) = 0.001;
     p = cout ./ repmat(sum(cout,3),[1,1,size(rf,3)]);
     enty = -sum(p.*log(p),3);
-    %mact = imdilate(acty, strel('square',s));
-    %p = enty<mean(enty(:)) & acty>mean(acty(:)) & acty==mact;
-    %frame = cat(1, frame, [xp(p),yp(p),p(p)*s]);
+    [~,mact] = FindMax(acty, s);
+    p = enty<mean(enty(:)) & acty>mean(acty(:)) & mact;
+    frame = cat(1, frame, [xp(p),yp(p),p(p)*s]);
   end
   close all;
   imshow(img);
