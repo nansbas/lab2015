@@ -1,9 +1,7 @@
 % Make Simple Receptive Field.
 %  Generate Gabor filters of `rfsize` x `rfsize`, with orientations in `degrees`.
-%  `grid` gives the layout of the rendered filters, 
-%  for example, [3,2] for 6 filters. It is optional.
 %  `rf` contains all filters and `out` is the rendered image.
-function [rf,out] = MakeSimpleRF(rfsize, degrees, grid)
+function [rf,out] = MakeSimpleRF(rfsize, degrees)
   if ~exist('grid','var')
     grid = [1,length(degrees)];
   end
@@ -22,18 +20,5 @@ function [rf,out] = MakeSimpleRF(rfsize, degrees, grid)
     rf1(rf1<0) = rf1(rf1<0) / abs(sum(rf1(rf1<0)));
     rf(:,:,i) = rf1;
   end
-  out = ones(grid(1)*73-1,grid(2)*73-1,3);
-  for x = 1:grid(2)
-    for y = 1:grid(1)
-      k = x + (y-1)*grid(2);
-      red = imresize(rf(:,:,k),[72,72]);
-      blue = red;
-      green = red * 0;
-      red(red<0) = 0;
-      red = red / max(red(:));
-      blue(blue > 0) = 0;
-      blue = blue / min(blue(:));
-      out((y-1)*73+(1:72),(x-1)*73+(1:72),:) = cat(3,red,green,blue);
-    end
-  end
+  out = ColorWeightMatrix(rf);
 end
