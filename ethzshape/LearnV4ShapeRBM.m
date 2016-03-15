@@ -20,8 +20,9 @@ function [w,b,c,response] = LearnV4ShapeRBM(img, lrate, w, b, c)
     for y = (rfsize+1):(size(img,1)-rfsize)
       if ~ridge(y,x), continue; end
       patch = out(y-rfsize:y+rfsize,x-rfsize:x+rfsize);
-      v = cat(1, v, patch(:)');
       response(y,x) = max(patch(:)'*w+c);
+      if lrate <= 0, continue; end
+      v = cat(1, v, patch(:)');
       if size(v,1) == bsize
         [w,b,c] = TrainRBM(v,w,b,c,lrate); 
         v = [];
