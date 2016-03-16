@@ -1,25 +1,26 @@
 % Learn RBM for V4 shape feature.
 %  img: training image.
-%  w: weight matrix, size(w)=[n*n,m].
-%  b,c: bias vector, size(b)=[1,n*n] for visible units, size(c)=[1,m] for hidden.
+%  w: weight matrix, size(w)=[n*n*k,m]. n is patch size.
+%  k is #orientations. m is #output neurons.
+%  b,c: bias vector, size(b)=[1,n*n*k] for visible units, size(c)=[1,m] for hidden.
 %  lrate: learning rate.
 function [w,b,c,response] = LearnV4ShapeRBM(img, lrate, w, b, c)
-  if ~exist('w','var'), w = rand(19*19,128); end
-  if ~exist('b','var'), b = rand(1,19*19); end
-  if ~exist('c','var'), c = rand(1,128); end
+  if ~exist('w','var'), w = rand(19*19*4,512); end
+  if ~exist('b','var'), b = rand(1,19*19*4); end
+  if ~exist('c','var'), c = rand(1,512); end
   rfsize = 9; % n = rfsize*2+1.
-  bsize = 100;
-  [rf,~] = MakeSimpleRF(rfsize, 0:30:170);
-  [~,~,ridge] = SimpleCell(img, rf);
+  bsize = 800;
+  [rf,~] = MakeSimpleRF(rfsize, 0:45:170);
+  [out,~,ridge] = SimpleCell(img, rf);
   mridge = max(ridge(:));
-  out = ridge/mridge;
-  ridge = (ridge>mridge/10);
+  out = out/mridge;
+  ridge = (ridge>mridge/8);
   v = [];
   response = zeros(size(ridge));
   for x = (rfsize+1):(size(img,2)-rfsize)
     for y = (rfsize+1):(size(img,1)-rfsize)
       if ~ridge(y,x), continue; end
-      patch = out(y-rfsize:y+rfsize,x-rfsize:x+rfsize);
+      patch = out(y-rfsize:y+rfsize,x-rfsize:x+rfsize,:);
       response(y,x) = max(patch(:)'*w+c);
       if lrate <= 0, continue; end
       v = cat(1, v, patch(:)');
