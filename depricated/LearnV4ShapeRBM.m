@@ -10,7 +10,7 @@ function [w,b,c,response] = LearnV4ShapeRBM(img, lrate, w, b, c)
   if ~exist('b','var'), b = rand(1,19*19*4); end
   if ~exist('c','var'), c = rand(1,512); end
   rfsize = 9; % n = rfsize*2+1.
-  bsize = 800;
+  bsize = 1000;
   [rf,~] = MakeSimpleRF(rfsize, 0:45:170);
   [out,~,ridge] = SimpleCell(img, rf);
   mridge = max(ridge(:));
@@ -27,12 +27,12 @@ function [w,b,c,response] = LearnV4ShapeRBM(img, lrate, w, b, c)
       if lrate <= 0, continue; end
       v = cat(1, v, patch(:)');
       if size(v,1) == bsize
-        [w,b,c,dw,db,dc] = TrainRBM(v,w,b,c,dw,db,dc,lrate,0.5,0.0001); 
+        [w,b,c,dw,db,dc] = TrainRBM(v,w,b,c,dw,db,dc,lrate,0.9,0.0002); 
         v = [];
       end
     end
   end
-  if ~isempty(v), [w,b,c,~,~,~] = TrainRBM(v,w,b,c,dw,db,dc,lrate,0.5,0.0001); end
+  if ~isempty(v), [w,b,c,~,~,~] = TrainRBM(v,w,b,c,dw,db,dc,lrate,0.9,0.0002); end
 end
 
 % Train RBM.
