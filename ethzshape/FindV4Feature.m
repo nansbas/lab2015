@@ -5,13 +5,14 @@
 %     The return value is de-normalized features.
 %   f = FindV4Feature(lines, threshold, minLength): Find and draw V4 features.
 %     lines is a cell array of matrix {[x1,y1;x2,y2;...],...}.
+%     lines possibly contains strength value {[x1,y1,s1;x2,y2,s2;...],...}.
 %     threshold is the maximal summed error in least squares fitting.
 %     minLength is the minimal feature length.
 %     We usually use FindV4Feature(lines, 2.5, 20) for ETHZ-shape images.
 %     Returned features f is row matrix,
-%     [x1,y1,x2,y2,a,b,startPointIndex,endPointIndex,lineIndex;...].
+%     [x1,y1,x2,y2,a,b,startPointIndex,endPointIndex,lineIndex,strength;...].
 %     Normalized model f is row matrix,
-%     [x1,y1,x2,y2,a,b,startPointIndex,endPointIndex,N/A,midX,midY,scale;...].
+%     [x1,y1,x2,y2,a,b,N/A,N/A,N/A,midX,midY,scale,strength;...].
 function f = FindV4Feature(lines, threshold, minLength)
   if strcmp(lines,'draw')
     DrawResult(threshold);
@@ -28,8 +29,12 @@ function f = FindV4Feature(lines, threshold, minLength)
     for i = 1:length(lines)
       result = DoLine(double(lines{i}), threshold, minLength);
       if ~isempty(result)
-        result(:,9) = i;
-        f = cat(1,f,result(:,1:9));
+        result = padarray(result(:,1:8), [0,2], 1, 'post');
+        for j = 1:size(result,1)
+          result(j,9) = i;
+          if size(lines{i},2) > 2, result(j,10) = mean(lines{i}(result(j,7):result(j,8),3)); end
+        end
+        f = cat(1,f,result(:,1:10));
       end
     end
     DrawResult(f);
@@ -135,21 +140,30 @@ end
 
 % Draw V4 features.
 function DrawResult(f, colororder)
-  if ~exist('colororder','var'), colororder = rand(32,3); end
   arg = {};
   x = (-1:0.1:1)';
   mu1 = x.^2-abs(x)*2+1;
   mu2 = 1-x.^2;
   hold on
-  set(gca, 'ColorOrder', colororder);
+  if ~exist('colororder','var'), colororder = rand(32,3); end
+  if strcmp(colororder, 'strength')
+    plotStrength = 1;
+    strength = 1 - f(:,10)/max(f(:,10));
+  else
+    plotStrength = 0;
+    set(gca, 'ColorOrder', colororder);
+  end
   for i = 1:size(f,1)
     t = [-1,0,1,0;0,1,0,1;1,0,1,0;0,-1,0,1]^(-1)*f(i,1:4)';
     t = [t(1),-t(2);t(2),t(1);t(3),t(4)];
     xy = [x,(mu1*f(i,5)+mu2*f(i,6)),ones(21,1)]*t;
     arg{i*2-1} = xy(:,1);
     arg{i*2} = xy(:,2);
+    if plotStrength
+      plot(xy(:,1), xy(:,2), 'Color', strength(i)*[1,1,1], 'LineWidth', 3);
+    end
   end
-  plot(arg{:}, 'LineWidth', 3);
+  if ~plotStrength, plot(arg{:}, 'LineWidth', 3); end
   for i = 1:size(f,1)
     t = [-1,0,1,0;0,1,0,1;1,0,1,0;0,-1,0,1]^(-1)*f(i,1:4)';
     t = [t(1),-t(2);t(2),t(1);t(3),t(4)];
